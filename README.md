@@ -114,13 +114,13 @@ A lambda layer provides aws-lambda-powertools. To have these dependencies locall
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_findings_manager_bucket"></a> [findings\_manager\_bucket](#module\_findings\_manager\_bucket) | schubergphilis/mcaf-s3/aws | ~> 3.0.0 |
-| <a name="module_findings_manager_events_lambda"></a> [findings\_manager\_events\_lambda](#module\_findings\_manager\_events\_lambda) | schubergphilis/mcaf-lambda/aws | ~> 3.0.0 |
-| <a name="module_findings_manager_trigger_lambda"></a> [findings\_manager\_trigger\_lambda](#module\_findings\_manager\_trigger\_lambda) | schubergphilis/mcaf-lambda/aws | ~> 3.0.0 |
-| <a name="module_findings_manager_worker_lambda"></a> [findings\_manager\_worker\_lambda](#module\_findings\_manager\_worker\_lambda) | schubergphilis/mcaf-lambda/aws | ~> 3.0.0 |
-| <a name="module_jira_eventbridge_iam_role"></a> [jira\_eventbridge\_iam\_role](#module\_jira\_eventbridge\_iam\_role) | schubergphilis/mcaf-role/aws | ~> 0.5.3 |
-| <a name="module_jira_lambda"></a> [jira\_lambda](#module\_jira\_lambda) | schubergphilis/mcaf-lambda/aws | ~> 3.0.0 |
-| <a name="module_jira_step_function_iam_role"></a> [jira\_step\_function\_iam\_role](#module\_jira\_step\_function\_iam\_role) | schubergphilis/mcaf-role/aws | ~> 0.5.3 |
+| <a name="module_findings_manager_bucket"></a> [findings\_manager\_bucket](#module\_findings\_manager\_bucket) | schubergphilis-ep/mcaf-s3/aws | ~> 3.0.0 |
+| <a name="module_findings_manager_events_lambda"></a> [findings\_manager\_events\_lambda](#module\_findings\_manager\_events\_lambda) | schubergphilis-ep/mcaf-lambda/aws | ~> 3.0.0 |
+| <a name="module_findings_manager_trigger_lambda"></a> [findings\_manager\_trigger\_lambda](#module\_findings\_manager\_trigger\_lambda) | schubergphilis-ep/mcaf-lambda/aws | ~> 3.0.0 |
+| <a name="module_findings_manager_worker_lambda"></a> [findings\_manager\_worker\_lambda](#module\_findings\_manager\_worker\_lambda) | schubergphilis-ep/mcaf-lambda/aws | ~> 3.0.0 |
+| <a name="module_jira_eventbridge_iam_role"></a> [jira\_eventbridge\_iam\_role](#module\_jira\_eventbridge\_iam\_role) | schubergphilis-ep/mcaf-role/aws | ~> 0.5.3 |
+| <a name="module_jira_lambda"></a> [jira\_lambda](#module\_jira\_lambda) | schubergphilis-ep/mcaf-lambda/aws | ~> 3.0.0 |
+| <a name="module_jira_step_function_iam_role"></a> [jira\_step\_function\_iam\_role](#module\_jira\_step\_function\_iam\_role) | schubergphilis-ep/mcaf-role/aws | ~> 0.5.3 |
 | <a name="module_servicenow_integration"></a> [servicenow\_integration](#module\_servicenow\_integration) | ./modules/servicenow/ | n/a |
 
 ## Resources
