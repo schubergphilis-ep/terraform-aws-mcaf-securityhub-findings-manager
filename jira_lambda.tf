@@ -108,7 +108,7 @@ module "jira_lambda" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
   count = local.jira_integration_enabled ? 1 : 0
 
-  source  = "schubergphilis/mcaf-lambda/aws"
+  source  = "schubergphilis-ep/mcaf-lambda/aws"
   version = "~> 3.0.0"
 
   name                        = var.jira_integration.lambda_settings.name

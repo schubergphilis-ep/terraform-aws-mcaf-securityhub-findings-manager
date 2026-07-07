@@ -6,7 +6,7 @@ locals {
 module "jira_step_function_iam_role" {
   count = local.jira_integration_enabled ? 1 : 0
 
-  source  = "schubergphilis/mcaf-role/aws"
+  source  = "schubergphilis-ep/mcaf-role/aws"
   version = "~> 0.5.3"
 
   name                  = var.jira_step_function_iam_role_name
@@ -101,7 +101,7 @@ resource "aws_sfn_state_machine" "jira_orchestrator" {
 module "jira_eventbridge_iam_role" {
   count = local.jira_integration_enabled ? 1 : 0
 
-  source  = "schubergphilis/mcaf-role/aws"
+  source  = "schubergphilis-ep/mcaf-role/aws"
   version = "~> 0.5.3"
 
   name                  = var.jira_eventbridge_iam_role_name

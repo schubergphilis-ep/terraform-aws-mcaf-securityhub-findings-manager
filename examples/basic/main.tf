@@ -3,7 +3,7 @@ provider "aws" {}
 data "aws_caller_identity" "current" {}
 
 module "kms" {
-  source  = "schubergphilis/mcaf-kms/aws"
+  source  = "schubergphilis-ep/mcaf-kms/aws"
   version = "~> 0.3.0"
 
   name   = "securityhub-findings-manager"
