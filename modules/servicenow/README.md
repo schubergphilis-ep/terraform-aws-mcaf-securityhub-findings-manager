@@ -17,7 +17,7 @@
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_sync-user"></a> [sync-user](#module\_sync-user) | schubergphilis/mcaf-user/aws | 1.0.0 |
+| <a name="module_sync-user"></a> [sync-user](#module\_sync-user) | schubergphilis-ep/mcaf-user/aws | 1.0.0 |
 
 ## Resources
 
