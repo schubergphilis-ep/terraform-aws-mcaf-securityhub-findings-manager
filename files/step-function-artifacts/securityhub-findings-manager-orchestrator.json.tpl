@@ -20,6 +20,20 @@
             "Next": "ChoiceJiraIntegration"
           },
           {
+            "Comment": "Skip suppression for resolved findings - go straight to Jira autoclose check",
+            "And": [
+              {
+                "Variable": "$.detail.findings[0].Workflow.Status",
+                "StringEquals": "NOTIFIED"
+              },
+              {
+                "Variable": "$.detail.findings[0].Compliance.Status",
+                "StringEquals": "PASSED"
+              }
+            ],
+            "Next": "ChoiceJiraIntegration"
+          },
+          {
             "Or": [
               {
                 "Variable": "$.detail.findings[0].Workflow.Status",

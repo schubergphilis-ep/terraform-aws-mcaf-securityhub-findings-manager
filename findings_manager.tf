@@ -164,6 +164,36 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
 EOF
 }
 
+# Separate EventBridge Rule for resolved findings (NOTIFIED + PASSED + ACTIVE) when autoclose is enabled
+# This catches findings that transitioned from FAILED to PASSED (remediated). These are excluded
+# from the main rule (securityhub_findings_events) by the "anything-but: PASSED" Compliance filter.
+# Cannot be merged with securityhub_findings_resolved_events because adding NOTIFIED there (without
+# a Compliance.Status filter) would re-trigger autoclose immediately after ticket creation.
+resource "aws_cloudwatch_event_rule" "securityhub_findings_passed_events" {
+  count = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false) ? 1 : 0
+
+  name        = "rule-passed-${var.findings_manager_events_lambda.name}"
+  description = "EventBridge rule for detecting remediated findings (NOTIFIED + PASSED), triggering Jira ticket autoclose."
+  region      = var.region
+  tags        = var.tags
+
+  event_pattern = jsonencode({
+    source      = ["aws.securityhub"]
+    detail-type = ["Security Hub Findings - Imported"]
+    detail = {
+      findings = {
+        Workflow = {
+          Status = ["NOTIFIED"]
+        }
+        RecordState = ["ACTIVE"]
+        Compliance = {
+          Status = ["PASSED"]
+        }
+      }
+    }
+  })
+}
+
 # Separate EventBridge Rule for deleted resources (ARCHIVED + NOT_AVAILABLE) when autoclose is enabled
 # This allows catching findings that SecurityHub resets to NEW when a resource is deleted
 resource "aws_cloudwatch_event_rule" "securityhub_findings_deleted_resources" {
