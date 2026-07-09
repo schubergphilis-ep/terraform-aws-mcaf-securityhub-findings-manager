@@ -166,6 +166,26 @@ run "jira_enabled" {
     condition     = length(aws_cloudwatch_event_target.jira_orchestrator_resolved) == 0
     error_message = "Resolved findings target should not exist when autoclose is disabled"
   }
+
+  assert {
+    condition     = length(aws_cloudwatch_event_rule.securityhub_findings_passed_events) == 0
+    error_message = "Passed-findings rule should not exist when autoclose is disabled"
+  }
+
+  assert {
+    condition     = length(aws_cloudwatch_event_rule.securityhub_findings_deleted_resources) == 0
+    error_message = "Deleted-resources rule should not exist when autoclose is disabled"
+  }
+
+  assert {
+    condition     = length(aws_cloudwatch_event_target.jira_orchestrator_passed) == 0
+    error_message = "Passed-findings target should not exist when autoclose is disabled"
+  }
+
+  assert {
+    condition     = length(aws_cloudwatch_event_target.jira_orchestrator_deleted_resources) == 0
+    error_message = "Deleted-resources target should not exist when autoclose is disabled"
+  }
 }
 
 run "jira_multiple_instances" {
@@ -244,5 +264,86 @@ run "jira_autoclose" {
   assert {
     condition     = length(aws_cloudwatch_event_rule.securityhub_findings_resolved_events) == 1
     error_message = "Resolved findings rule should be created when autoclose is enabled"
+  }
+
+  # --- Autoclose rules/targets are created ------------------------------------------------
+
+  assert {
+    condition     = length(aws_cloudwatch_event_rule.securityhub_findings_passed_events) == 1
+    error_message = "Passed-findings rule should be created when autoclose is enabled"
+  }
+
+  assert {
+    condition     = length(aws_cloudwatch_event_rule.securityhub_findings_deleted_resources) == 1
+    error_message = "Deleted-resources rule should be created when autoclose is enabled"
+  }
+
+  assert {
+    condition     = length(aws_cloudwatch_event_target.jira_orchestrator_passed) == 1
+    error_message = "Passed-findings target should be created when autoclose is enabled"
+  }
+
+  assert {
+    condition     = length(aws_cloudwatch_event_target.jira_orchestrator_deleted_resources) == 1
+    error_message = "Deleted-resources target should be created when autoclose is enabled"
+  }
+
+  # --- Deleted-resources rule is product-agnostic  ----------
+  # It must key on RecordState = ARCHIVED with NO Compliance filter, otherwise findings from
+  # products without a Compliance field (GuardDuty, Inspector, Macie, IAM Access Analyzer)
+  # would never autoclose.
+
+  assert {
+    condition     = contains(jsondecode(aws_cloudwatch_event_rule.securityhub_findings_deleted_resources[0].event_pattern).detail.findings.RecordState, "ARCHIVED")
+    error_message = "Deleted-resources rule must match RecordState ARCHIVED"
+  }
+
+  assert {
+    condition     = !contains(keys(jsondecode(aws_cloudwatch_event_rule.securityhub_findings_deleted_resources[0].event_pattern).detail.findings), "Compliance")
+    error_message = "Deleted-resources rule must NOT filter on Compliance (would silently miss products with no Compliance field)"
+  }
+
+  assert {
+    condition     = toset(jsondecode(aws_cloudwatch_event_rule.securityhub_findings_deleted_resources[0].event_pattern).detail.findings.Workflow.Status) == toset(["NEW", "NOTIFIED"])
+    error_message = "Deleted-resources rule must match workflow NEW and NOTIFIED"
+  }
+
+  # --- Passed (remediated) rule shape -----------------------------------------------------
+
+  assert {
+    condition     = contains(jsondecode(aws_cloudwatch_event_rule.securityhub_findings_passed_events[0].event_pattern).detail.findings.Compliance.Status, "PASSED")
+    error_message = "Passed-findings rule must match Compliance PASSED"
+  }
+
+  assert {
+    condition     = contains(jsondecode(aws_cloudwatch_event_rule.securityhub_findings_passed_events[0].event_pattern).detail.findings.RecordState, "ACTIVE")
+    error_message = "Passed-findings rule must match RecordState ACTIVE"
+  }
+
+  # --- Rules are mutually exclusive  --------------------
+  # A single finding event must never match two rules, or EventBridge starts two concurrent
+  # Step Function executions against the same finding.
+
+  assert {
+    condition     = jsondecode(aws_cloudwatch_event_rule.securityhub_findings_events.event_pattern).detail.findings.RecordState == ["ACTIVE"]
+    error_message = "Primary rule must be scoped to RecordState ACTIVE (disjoint from the archived-findings rule)"
+  }
+
+  assert {
+    condition     = jsondecode(aws_cloudwatch_event_rule.securityhub_findings_events.event_pattern).detail.findings.Compliance.Status[0]["anything-but"] == "PASSED"
+    error_message = "Primary rule must exclude PASSED findings (disjoint from the passed-events rule)"
+  }
+
+  assert {
+    condition = length(setintersection(
+      toset(jsondecode(aws_cloudwatch_event_rule.securityhub_findings_events.event_pattern).detail.findings.RecordState),
+      toset(jsondecode(aws_cloudwatch_event_rule.securityhub_findings_deleted_resources[0].event_pattern).detail.findings.RecordState)
+    )) == 0
+    error_message = "Primary and deleted-resources rules must be disjoint by RecordState"
+  }
+
+  assert {
+    condition     = !contains(jsondecode(aws_cloudwatch_event_rule.securityhub_findings_resolved_events[0].event_pattern).detail.findings.Workflow.Status, "NOTIFIED")
+    error_message = "Resolved rule must not match NOTIFIED (disjoint from the primary/deleted rules)"
   }
 }
