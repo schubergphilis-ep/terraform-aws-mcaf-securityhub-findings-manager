@@ -6,7 +6,6 @@ locals {
   ]) > 0
 
   # Check if Jira autoclose is enabled (requires the Jira integration itself to be enabled).
-  # try() guards against var.jira_integration being null, since && does not short-circuit.
   jira_autoclose_enabled = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false)
 
   # Collect all SecretsManager ARNs from all enabled instances

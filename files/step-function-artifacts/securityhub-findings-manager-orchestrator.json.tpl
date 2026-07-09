@@ -12,7 +12,7 @@
             "Next": "ChoiceJiraIntegration"
           },
           {
-            "Comment": "Resolved finding (Workflow NOTIFIED + Compliance PASSED): skip suppression, evaluate Jira autoclose. The IsPresent guard prevents a States.Runtime error on findings without a Compliance object (GuardDuty, Inspector, Macie, etc.)",
+            "Comment": "Remediated finding (Workflow NOTIFIED + Compliance PASSED): skip suppression, evaluate Jira autoclose. The IsPresent guard prevents a States.Runtime error on findings without a Compliance object (GuardDuty, Inspector, Macie, etc.)",
             "And": [
               {
                 "Variable": "$.detail.findings[0].Workflow.Status",

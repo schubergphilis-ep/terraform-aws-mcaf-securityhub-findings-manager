@@ -139,9 +139,11 @@ module "findings_manager_events_lambda" {
 #   - Severity.Label != INFORMATIONAL  -> ignore purely informational noise
 #   - Compliance.Status != PASSED (or absent) -> the control is failing, not remediated
 #
-# The RecordState ACTIVE filter is what keeps this rule mutually exclusive from the autoclose
-# rules below (which handle ARCHIVED, PASSED, RESOLVED and SUPPRESSED findings). Without it, an
-# archived finding would match both this rule and securityhub_findings_deleted_resources
+# A combination of filters keeps this rule mutually exclusive from the three autoclose rules
+# below, so no single finding event fans out to two rules:
+#   - RecordState ACTIVE                      -> disjoint from securityhub_findings_deleted_resources (ARCHIVED)
+#   - Compliance.Status anything-but PASSED   -> disjoint from securityhub_findings_passed_events (also ACTIVE, but PASSED)
+#   - Workflow.Status NEW/NOTIFIED            -> disjoint from securityhub_findings_resolved_events (RESOLVED/SUPPRESSED)
 resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
   name        = "rule-${var.findings_manager_events_lambda.name}"
   description = "Detects open findings needing action: record state ACTIVE, workflow NEW/NOTIFIED, severity above informational, control not passing."
