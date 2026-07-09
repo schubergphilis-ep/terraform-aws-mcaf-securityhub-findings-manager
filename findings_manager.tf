@@ -134,12 +134,17 @@ module "findings_manager_events_lambda" {
 # Primary EventBridge rule: matches newly-imported, actionable Security Hub findings.
 #
 # It fires on findings that are:
+#   - RecordState ACTIVE               -> the finding still applies to a live resource
 #   - Workflow.Status NEW or NOTIFIED  -> still open / awaiting action
 #   - Severity.Label != INFORMATIONAL  -> ignore purely informational noise
 #   - Compliance.Status != PASSED (or absent) -> the control is failing, not remediated
+#
+# The RecordState ACTIVE filter is what keeps this rule mutually exclusive from the autoclose
+# rules below (which handle ARCHIVED, PASSED, RESOLVED and SUPPRESSED findings). Without it, an
+# archived finding would match both this rule and securityhub_findings_deleted_resources
 resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
   name        = "rule-${var.findings_manager_events_lambda.name}"
-  description = "Detects open findings needing action: workflow NEW/NOTIFIED, severity above informational, control not passing."
+  description = "Detects open findings needing action: record state ACTIVE, workflow NEW/NOTIFIED, severity above informational, control not passing."
   region      = var.region
   tags        = var.tags
 
@@ -152,6 +157,7 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
       "Workflow": {
         "Status": ["NEW", "NOTIFIED"]
       },
+      "RecordState": ["ACTIVE"],
       "Severity": {
         "Label": [{
           "anything-but": "INFORMATIONAL"
@@ -206,23 +212,22 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_passed_events" {
   })
 }
 
-# Autoclose rule: matches findings for deleted resources (ARCHIVED + NOT_AVAILABLE).
+# Autoclose rule: matches findings for archived (deleted / no-longer-active) resources.
 # Only created when the Jira integration and autoclose are both enabled.
 #
-# When an AWS resource is deleted, Security Hub archives its findings: RecordState becomes
-# ARCHIVED and Compliance.Status becomes NOT_AVAILABLE. The Jira ticket for that finding
-# should be autoclosed, since the resource (and thus the risk) no longer exists.
+# When a resource is deleted (or its finding is otherwise archived) Security Hub sets
+# RecordState = ARCHIVED and the Jira ticket should be autoclosed. This deliberately does not
+# filter on Compliance.Status: findings from products without a compliance concept (GuardDuty,
+# Inspector, Macie, IAM Access Analyzer) have no Compliance field.
 #
-# The tricky part: Security Hub resets Workflow.Status back to NEW whenever a finding's
-# properties change (e.g. severity dropping to INFORMATIONAL as the resource is torn down),
-# so an archived finding may arrive as NEW rather than NOTIFIED. This rule therefore matches
-# both NEW and NOTIFIED and keys off RecordState + Compliance.Status instead of the workflow
-# status alone.
+# Scoped to Workflow.Status NEW/NOTIFIED so it stays mutually exclusive from
+# securityhub_findings_resolved_events (RESOLVED/SUPPRESSED) and, via the primary rule's
+# RecordState ACTIVE filter, from securityhub_findings_events.
 resource "aws_cloudwatch_event_rule" "securityhub_findings_deleted_resources" {
   count = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false) ? 1 : 0
 
   name        = "rule-deleted-${var.findings_manager_events_lambda.name}"
-  description = "Detects findings for deleted resources: record state ARCHIVED, control NOT_AVAILABLE, workflow status NEW or NOTIFIED."
+  description = "Detects archived findings (deleted/inactive resources): record state ARCHIVED, workflow status NEW or NOTIFIED, any compliance status."
   region      = var.region
   tags        = var.tags
 
@@ -235,9 +240,6 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_deleted_resources" {
           Status = ["NEW", "NOTIFIED"]
         }
         RecordState = ["ARCHIVED"]
-        Compliance = {
-          Status = ["NOT_AVAILABLE"]
-        }
       }
     }
   })
