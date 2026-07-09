@@ -95,7 +95,7 @@ resource "aws_s3_object" "findings_manager_lambdas_deployment_package" {
 # Lambda function to manage Security Hub findings in response to an EventBridge event
 module "findings_manager_events_lambda" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
-  source  = "schubergphilis/mcaf-lambda/aws"
+  source  = "schubergphilis-ep/mcaf-lambda/aws"
   version = "~> 3.0.0"
 
   name                        = var.findings_manager_events_lambda.name
@@ -278,7 +278,7 @@ resource "aws_cloudwatch_event_target" "findings_manager_events_lambda" {
 # Lambda to manage Security Hub findings in response to S3 rules file uploads
 module "findings_manager_trigger_lambda" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
-  source  = "schubergphilis/mcaf-lambda/aws"
+  source  = "schubergphilis-ep/mcaf-lambda/aws"
   version = "~> 3.0.0"
 
   name                        = var.findings_manager_trigger_lambda.name
@@ -347,7 +347,7 @@ resource "aws_s3_bucket_notification" "findings_manager_trigger" {
 # Lambda to manage Security Hub findings in response to S3 rules file uploads
 module "findings_manager_worker_lambda" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
-  source  = "schubergphilis/mcaf-lambda/aws"
+  source  = "schubergphilis-ep/mcaf-lambda/aws"
   version = "~> 3.0.0"
 
   name                        = var.findings_manager_worker_lambda.name

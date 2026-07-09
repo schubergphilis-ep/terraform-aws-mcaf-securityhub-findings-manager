@@ -1,6 +1,6 @@
 module "sync-user" {
   #checkov:skip=CKV_AWS_273:We really need a user for this setup
-  source  = "schubergphilis/mcaf-user/aws"
+  source  = "schubergphilis-ep/mcaf-user/aws"
   version = "1.0.0"
 
   name                  = "SCSyncUser"
