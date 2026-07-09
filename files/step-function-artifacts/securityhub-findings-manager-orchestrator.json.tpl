@@ -6,7 +6,7 @@
         "Type": "Choice",
         "Choices": [
           {
-            "Comment": "Skip suppression for deleted resources - go straight to Jira autoclose check",
+            "Comment": "Deleted resource (RecordState ARCHIVED + Compliance NOT_AVAILABLE): skip suppression, evaluate Jira autoclose",
             "And": [
               {
                 "Variable": "$.detail.findings[0].RecordState",
@@ -20,7 +20,7 @@
             "Next": "ChoiceJiraIntegration"
           },
           {
-            "Comment": "Skip suppression for resolved findings - go straight to Jira autoclose check",
+            "Comment": "Resolved finding (Workflow NOTIFIED + Compliance PASSED): skip suppression, evaluate Jira autoclose",
             "And": [
               {
                 "Variable": "$.detail.findings[0].Workflow.Status",
@@ -34,6 +34,7 @@
             "Next": "ChoiceJiraIntegration"
           },
           {
+            "Comment": "Active finding (Workflow NEW or NOTIFIED): run the findings-manager suppression Lambda",
             "Or": [
               {
                 "Variable": "$.detail.findings[0].Workflow.Status",
@@ -85,8 +86,10 @@
         "Type": "Choice",
         "Choices": [
           {
+            "Comment": "Eligible for Jira: finding was not suppressed, passes de-duplication, and matches create-ticket or close-ticket criteria - invoke the Jira Lambda",
             "And": [
               {
+                "Comment": "Finding was not actively suppressed by the findings-manager Lambda (no Lambda result, or result was 'skipped')",
                 "Or": [
                   {
                     "Variable": "$.TaskResult.Payload.finding_state",
