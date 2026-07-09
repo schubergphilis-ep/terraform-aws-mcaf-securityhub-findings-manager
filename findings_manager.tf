@@ -188,7 +188,7 @@ EOF
 # Compliance.Status filter, so adding NOTIFIED to it would match a freshly-created ticket's
 # own NOTIFIED event and immediately close the ticket we just opened.
 resource "aws_cloudwatch_event_rule" "securityhub_findings_passed_events" {
-  count = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false) ? 1 : 0
+  count = local.jira_autoclose_enabled ? 1 : 0
 
   name        = "rule-passed-${var.findings_manager_events_lambda.name}"
   description = "Detects remediated findings: workflow NOTIFIED (jira ticket exists), record state ACTIVE, control now PASSED."
@@ -224,7 +224,7 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_passed_events" {
 # securityhub_findings_resolved_events (RESOLVED/SUPPRESSED) and, via the primary rule's
 # RecordState ACTIVE filter, from securityhub_findings_events.
 resource "aws_cloudwatch_event_rule" "securityhub_findings_deleted_resources" {
-  count = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false) ? 1 : 0
+  count = local.jira_autoclose_enabled ? 1 : 0
 
   name        = "rule-deleted-${var.findings_manager_events_lambda.name}"
   description = "Detects archived findings (deleted/inactive resources): record state ARCHIVED, workflow status NEW or NOTIFIED, any compliance status."
@@ -259,7 +259,7 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_deleted_resources" {
 # reacting to findings that were already passing before being resolved - there is no
 # meaningful ticket to close for those.
 resource "aws_cloudwatch_event_rule" "securityhub_findings_resolved_events" {
-  count = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false) ? 1 : 0
+  count = local.jira_autoclose_enabled ? 1 : 0
 
   name        = "rule-resolved-${var.findings_manager_events_lambda.name}"
   description = "Detects findings closed by decision: workflow RESOLVED (or SUPPRESSED if enabled), control not already passing before closure."

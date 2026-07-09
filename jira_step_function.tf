@@ -84,7 +84,7 @@ resource "aws_sfn_state_machine" "jira_orchestrator" {
   definition = templatefile("${path.module}/files/step-function-artifacts/${local.sfn_jira_orchestrator_name}.json.tpl", {
     finding_severity_normalized       = var.jira_integration.finding_severity_normalized_threshold
     findings_manager_events_lambda    = module.findings_manager_events_lambda.arn
-    jira_autoclose_enabled            = var.jira_integration.autoclose_enabled
+    jira_autoclose_enabled            = local.jira_autoclose_enabled
     jira_autoclose_suppressed_enabled = var.jira_integration.autoclose_suppressed_findings
     jira_lambda                       = module.jira_lambda[0].arn
     include_product_names             = var.jira_integration.include_product_names
@@ -136,7 +136,7 @@ resource "aws_cloudwatch_event_target" "jira_orchestrator" {
 }
 
 resource "aws_cloudwatch_event_target" "jira_orchestrator_resolved" {
-  count = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false) ? 1 : 0
+  count = local.jira_autoclose_enabled ? 1 : 0
 
   arn      = aws_sfn_state_machine.jira_orchestrator[0].arn
   region   = var.region
@@ -145,7 +145,7 @@ resource "aws_cloudwatch_event_target" "jira_orchestrator_resolved" {
 }
 
 resource "aws_cloudwatch_event_target" "jira_orchestrator_passed" {
-  count = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false) ? 1 : 0
+  count = local.jira_autoclose_enabled ? 1 : 0
 
   arn      = aws_sfn_state_machine.jira_orchestrator[0].arn
   region   = var.region
@@ -154,7 +154,7 @@ resource "aws_cloudwatch_event_target" "jira_orchestrator_passed" {
 }
 
 resource "aws_cloudwatch_event_target" "jira_orchestrator_deleted_resources" {
-  count = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false) ? 1 : 0
+  count = local.jira_autoclose_enabled ? 1 : 0
 
   arn      = aws_sfn_state_machine.jira_orchestrator[0].arn
   region   = var.region
