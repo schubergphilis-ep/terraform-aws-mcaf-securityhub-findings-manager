@@ -133,23 +133,28 @@ def lambda_handler(event: dict, context: LambdaContext):
 
     # Handle resolved findings - Close Jira issue when:
     # 1. Workflow status is RESOLVED (finding explicitly resolved)
-    # 2. Workflow status is SUPPRESSED (finding suppressed, step function only passed these type of findings when autoclose_suppressed_findings = true)
-    # 3. Workflow status is NOTIFIED AND any of:
-    #    - Compliance status is PASSED (resolved but not yet marked in SecurityHub)
-    #    - Compliance status is NOT_AVAILABLE (resource deleted)
-    #    - Record state is ARCHIVED
-    # 4. Workflow status is NEW (reset by SecurityHub) AND resource is deleted (ARCHIVED + NOT_AVAILABLE)
-    # Note: Findings closed from NOTIFIED status are automatically marked as RESOLVED in SecurityHub.
+    # 2. Workflow status is SUPPRESSED (finding suppressed, step function only passes these type of findings when autoclose_suppressed_findings = true)
+    # 3. Workflow status is NOTIFIED AND the control is no longer failing:
+    #    - Compliance status is PASSED (remediated but not yet marked RESOLVED in SecurityHub)
+    #    - Compliance status is NOT_AVAILABLE (control can no longer be evaluated)
+    # 4. Record state is ARCHIVED, for ANY workflow status and regardless of Compliance.Status.
+    #    RecordState is the product-agnostic "no longer active" signal: it closes tickets for
+    #    control findings archived with any compliance status (NOT_AVAILABLE or PASSED on resource
+    #    deletion) AND for findings from products that carry no Compliance field at all
+    #    (e.g. GuardDuty, Inspector, Macie, IAM Access Analyzer). It also covers the case where
+    #    SecurityHub reset the workflow status to NEW on a re-import.
+    # Note: Findings closed from NEW/NOTIFIED status are automatically marked as RESOLVED in SecurityHub.
     #       SecurityHub will reopen and create a new ticket if the finding becomes relevant again.
+    #
+    # This close condition MUST be kept in sync with the ChoiceJiraIntegration close gate in the Step
+    # Function (securityhub-findings-manager-orchestrator.json.tpl); changing one without the other
+    # will silently drop or double-process findings.
     elif (workflow_status == STATUS_RESOLVED
             or workflow_status == STATUS_SUPPRESSED
             or (workflow_status == STATUS_NOTIFIED
-                and (compliance_status in [COMPLIANCE_STATUS_PASSED,
-                                           COMPLIANCE_STATUS_NOT_AVAILABLE]
-                     or record_state == RECORD_STATE_ARCHIVED))
-            or (workflow_status == STATUS_NEW
-                and record_state == RECORD_STATE_ARCHIVED
-                and compliance_status == COMPLIANCE_STATUS_NOT_AVAILABLE)):
+                and compliance_status in [COMPLIANCE_STATUS_PASSED,
+                                          COMPLIANCE_STATUS_NOT_AVAILABLE])
+            or record_state == RECORD_STATE_ARCHIVED):
         # Close Jira issue if finding is resolved.
         # Note text should contain Jira issue key in JSON format
         try:

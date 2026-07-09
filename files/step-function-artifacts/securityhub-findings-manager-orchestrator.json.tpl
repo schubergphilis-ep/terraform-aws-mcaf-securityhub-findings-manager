@@ -6,17 +6,9 @@
         "Type": "Choice",
         "Choices": [
           {
-            "Comment": "Deleted resource (RecordState ARCHIVED + Compliance NOT_AVAILABLE): skip suppression, evaluate Jira autoclose",
-            "And": [
-              {
-                "Variable": "$.detail.findings[0].RecordState",
-                "StringEquals": "ARCHIVED"
-              },
-              {
-                "Variable": "$.detail.findings[0].Compliance.Status",
-                "StringEquals": "NOT_AVAILABLE"
-              }
-            ],
+            "Comment": "Archived finding (resource deleted / no longer active): skip suppression, evaluate Jira autoclose.",
+            "Variable": "$.detail.findings[0].RecordState",
+            "StringEquals": "ARCHIVED",
             "Next": "ChoiceJiraIntegration"
           },
           {
@@ -205,19 +197,22 @@
                     ]
                   },
                   {
-                    "Comment": "CLOSE JIRA TICKET: Works at ANY severity (ticket already exists)",
+                    "Comment": "CLOSE JIRA TICKET: Works at ANY severity (ticket already exists).",
                     "And": [
                       {
                         "Or": [
                           {
+                            "Comment": "Finding explicitly resolved by a human",
                             "Variable": "$.detail.findings[0].Workflow.Status",
                             "StringEquals": "RESOLVED"
                           },%{~ if jira_autoclose_suppressed_enabled }
                           {
+                            "Comment": "Finding suppressed (only routed here when autoclose_suppressed_findings is enabled)",
                             "Variable": "$.detail.findings[0].Workflow.Status",
                             "StringEquals": "SUPPRESSED"
                           },%{ endif ~}
                           {
+                            "Comment": "Remediated finding: a ticket is open (NOTIFIED) and the control now passes (PASSED) or can no longer be evaluated (NOT_AVAILABLE)",
                             "And": [
                               {
                                 "Variable": "$.detail.findings[0].Workflow.Status",
@@ -230,33 +225,17 @@
                                     "StringEquals": "PASSED"
                                   },
                                   {
-                                    "And": [
-                                      {
-                                        "Variable": "$.detail.findings[0].RecordState",
-                                        "StringEquals": "ARCHIVED"
-                                      },
-                                      {
-                                        "Variable": "$.detail.findings[0].Compliance.Status",
-                                        "StringEquals": "NOT_AVAILABLE"
-                                      }
-                                    ]
+                                    "Variable": "$.detail.findings[0].Compliance.Status",
+                                    "StringEquals": "NOT_AVAILABLE"
                                   }
                                 ]
                               }
                             ]
                           },
                           {
-                            "Comment": "CLOSE for ARCHIVED resources even if Workflow reset to NEW",
-                            "And": [
-                              {
-                                "Variable": "$.detail.findings[0].RecordState",
-                                "StringEquals": "ARCHIVED"
-                              },
-                              {
-                                "Variable": "$.detail.findings[0].Compliance.Status",
-                                "StringEquals": "NOT_AVAILABLE"
-                              }
-                            ]
+                            "Comment": "Archived finding: the resource was deleted or the finding is otherwise no longer active. Matches any Workflow.Status, including NEW after a re-import reset.",
+                            "Variable": "$.detail.findings[0].RecordState",
+                            "StringEquals": "ARCHIVED"
                           }
                         ]
                       },
