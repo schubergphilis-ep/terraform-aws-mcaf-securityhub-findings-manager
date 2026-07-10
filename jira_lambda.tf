@@ -5,6 +5,9 @@ locals {
     if instance.enabled != false
   ]) > 0
 
+  # Check if Jira autoclose is enabled (requires the Jira integration itself to be enabled).
+  jira_autoclose_enabled = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false)
+
   # Collect all SecretsManager ARNs from all enabled instances
   jira_secretsmanager_arns = var.jira_integration != null ? [
     for instance_key, instance in var.jira_integration.instances : instance.credentials_secretsmanager_arn
@@ -67,7 +70,7 @@ data "aws_iam_policy_document" "jira_lambda_iam_role" {
     condition {
       test     = "ForAnyValue:StringEquals"
       variable = "securityhub:ASFFSyntaxPath/Workflow.Status"
-      values = try(var.jira_integration.autoclose_enabled, false) ? (
+      values = local.jira_autoclose_enabled ? (
         try(var.jira_integration.autoclose_suppressed_findings, false) ?
         ["NOTIFIED", "RESOLVED", "SUPPRESSED"] :
         ["NOTIFIED", "RESOLVED"]

@@ -131,10 +131,22 @@ module "findings_manager_events_lambda" {
   }
 }
 
-# EventBridge Rule that detect Security Hub events
+# Primary EventBridge rule: matches newly-imported, actionable Security Hub findings.
+#
+# It fires on findings that are:
+#   - RecordState ACTIVE               -> the finding still applies to a live resource
+#   - Workflow.Status NEW or NOTIFIED  -> still open / awaiting action
+#   - Severity.Label != INFORMATIONAL  -> ignore purely informational noise
+#   - Compliance.Status != PASSED (or absent) -> the control is failing, not remediated
+#
+# A combination of filters keeps this rule mutually exclusive from the three autoclose rules
+# below, so no single finding event fans out to two rules:
+#   - RecordState ACTIVE                      -> disjoint from securityhub_findings_deleted_resources (ARCHIVED)
+#   - Compliance.Status anything-but PASSED   -> disjoint from securityhub_findings_passed_events (also ACTIVE, but PASSED)
+#   - Workflow.Status NEW/NOTIFIED            -> disjoint from securityhub_findings_resolved_events (RESOLVED/SUPPRESSED)
 resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
   name        = "rule-${var.findings_manager_events_lambda.name}"
-  description = "EventBridge rule for detecting Security Hub findings events, triggering the findings manager events lambda."
+  description = "Detects open findings needing action: record state ACTIVE, workflow NEW/NOTIFIED, severity above informational, control not passing."
   region      = var.region
   tags        = var.tags
 
@@ -147,6 +159,7 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
       "Workflow": {
         "Status": ["NEW", "NOTIFIED"]
       },
+      "RecordState": ["ACTIVE"],
       "Severity": {
         "Label": [{
           "anything-but": "INFORMATIONAL"
@@ -164,11 +177,94 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
 EOF
 }
 
+# Autoclose rule: matches remediated findings (NOTIFIED + PASSED + ACTIVE).
+# Only created when the Jira integration and autoclose are both enabled.
+#
+# When the underlying issue behind a finding is fixed, Security Hub flips Compliance.Status
+# from FAILED to PASSED while the finding is still ACTIVE and Workflow.Status is NOTIFIED
+# (a Jira ticket was already opened for it). Such findings must trigger autoclose of that
+# ticket, but they are deliberately excluded from the primary rule above by its
+# "anything-but: PASSED" filter, so this dedicated rule catches them.
+#
+# This rule can also not be merged into securityhub_findings_resolved_events: that rule has no
+# Compliance.Status filter, so adding NOTIFIED to it would match a freshly-created ticket's
+# own NOTIFIED event and immediately close the ticket we just opened.
+resource "aws_cloudwatch_event_rule" "securityhub_findings_passed_events" {
+  count = local.jira_autoclose_enabled ? 1 : 0
+
+  name        = "rule-passed-${var.findings_manager_events_lambda.name}"
+  description = "Detects remediated findings: workflow NOTIFIED (jira ticket exists), record state ACTIVE, control now PASSED."
+  region      = var.region
+  tags        = var.tags
+
+  event_pattern = jsonencode({
+    source      = ["aws.securityhub"]
+    detail-type = ["Security Hub Findings - Imported"]
+    detail = {
+      findings = {
+        Workflow = {
+          Status = ["NOTIFIED"]
+        }
+        RecordState = ["ACTIVE"]
+        Compliance = {
+          Status = ["PASSED"]
+        }
+      }
+    }
+  })
+}
+
+# Autoclose rule: matches findings for archived (deleted / no-longer-active) resources.
+# Only created when the Jira integration and autoclose are both enabled.
+#
+# When a resource is deleted (or its finding is otherwise archived) Security Hub sets
+# RecordState = ARCHIVED and the Jira ticket should be autoclosed. This deliberately does not
+# filter on Compliance.Status: findings from products without a compliance concept (GuardDuty,
+# Inspector, Macie, IAM Access Analyzer) have no Compliance field.
+#
+# Scoped to Workflow.Status NEW/NOTIFIED so it stays mutually exclusive from
+# securityhub_findings_resolved_events (RESOLVED/SUPPRESSED) and, via the primary rule's
+# RecordState ACTIVE filter, from securityhub_findings_events.
+resource "aws_cloudwatch_event_rule" "securityhub_findings_deleted_resources" {
+  count = local.jira_autoclose_enabled ? 1 : 0
+
+  name        = "rule-deleted-${var.findings_manager_events_lambda.name}"
+  description = "Detects archived findings (deleted/inactive resources): record state ARCHIVED, workflow status NEW or NOTIFIED, any compliance status."
+  region      = var.region
+  tags        = var.tags
+
+  event_pattern = jsonencode({
+    source      = ["aws.securityhub"]
+    detail-type = ["Security Hub Findings - Imported"]
+    detail = {
+      findings = {
+        Workflow = {
+          Status = ["NEW", "NOTIFIED"]
+        }
+        RecordState = ["ARCHIVED"]
+      }
+    }
+  })
+}
+
+# Autoclose rule: matches findings that have been closed (RESOLVED, optionally SUPPRESSED).
+# Only created when the Jira integration and autoclose are both enabled.
+#
+# This handles the "closed by decision" path, as opposed to the "remediated" and "deleted"
+# paths covered by the two rules above:
+#   - Workflow.Status RESOLVED           -> a human marked the finding resolved
+#   - Workflow.Status SUPPRESSED         -> only included when autoclose_suppressed_findings
+#                                           is enabled, so suppressing a finding also closes
+#                                           its Jira ticket
+#
+# The ProductFields.PreviousComplianceStatus "anything-but: PASSED" (or absent) filter avoids
+# reacting to findings that were already passing before being resolved - there is no
+# meaningful ticket to close for those.
 resource "aws_cloudwatch_event_rule" "securityhub_findings_resolved_events" {
-  count = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false) ? 1 : 0
+  count = local.jira_autoclose_enabled ? 1 : 0
 
   name        = "rule-resolved-${var.findings_manager_events_lambda.name}"
-  description = "EventBridge rule for transiting resolved and suppressed messages, triggering Jira ticket closure."
+  description = "Detects findings closed by decision: workflow RESOLVED (or SUPPRESSED if enabled), control not already passing before closure."
   region      = var.region
   tags        = var.tags
 
