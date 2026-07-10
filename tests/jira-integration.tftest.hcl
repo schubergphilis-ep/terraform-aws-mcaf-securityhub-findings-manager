@@ -186,6 +186,15 @@ run "jira_enabled" {
     condition     = length(aws_cloudwatch_event_target.jira_orchestrator_deleted_resources) == 0
     error_message = "Deleted-resources target should not exist when autoclose is disabled"
   }
+
+  # The ChoiceSuppressor bypass for remediated (PASSED/NOT_AVAILABLE) findings is part of
+  # the autoclose feature: without autoclose there is no close gate to feed, and
+  # NOT_AVAILABLE findings (delivered by the primary rule regardless of autoclose) must
+  # keep flowing through the suppression lambda.
+  assert {
+    condition     = !strcontains(jsonencode(jsondecode(aws_sfn_state_machine.jira_orchestrator[0].definition).States.ChoiceSuppressor.Choices), "NOT_AVAILABLE")
+    error_message = "ChoiceSuppressor must not bypass suppression for NOT_AVAILABLE findings when autoclose is disabled"
+  }
 }
 
 run "jira_multiple_instances" {
@@ -345,5 +354,21 @@ run "jira_autoclose" {
   assert {
     condition     = !contains(jsondecode(aws_cloudwatch_event_rule.securityhub_findings_resolved_events[0].event_pattern).detail.findings.Workflow.Status, "NOTIFIED")
     error_message = "Resolved rule must not match NOTIFIED (disjoint from the primary/deleted rules)"
+  }
+
+  # --- Step Function suppression bypass mirrors the close gate ----------------------------
+  # The ChoiceSuppressor remediated-finding bypass must treat NOT_AVAILABLE like PASSED:
+  # both are close triggers in ChoiceJiraIntegration, and routing NOT_AVAILABLE through the
+  # suppression lambda would let a matching suppression rule set finding_state='suppressed',
+  # blocking the autoclose that an identical PASSED finding would get.
+
+  assert {
+    condition     = strcontains(jsonencode(jsondecode(aws_sfn_state_machine.jira_orchestrator[0].definition).States.ChoiceSuppressor.Choices), "PASSED")
+    error_message = "ChoiceSuppressor must bypass suppression for NOTIFIED+PASSED findings when autoclose is enabled"
+  }
+
+  assert {
+    condition     = strcontains(jsonencode(jsondecode(aws_sfn_state_machine.jira_orchestrator[0].definition).States.ChoiceSuppressor.Choices), "NOT_AVAILABLE")
+    error_message = "ChoiceSuppressor must bypass suppression for NOTIFIED+NOT_AVAILABLE findings (must mirror the close gate) when autoclose is enabled"
   }
 }

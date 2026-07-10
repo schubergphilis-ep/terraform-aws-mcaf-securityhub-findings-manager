@@ -11,8 +11,9 @@
             "StringEquals": "ARCHIVED",
             "Next": "ChoiceJiraIntegration"
           },
+%{~ if jira_autoclose_enabled }
           {
-            "Comment": "Remediated finding (Workflow NOTIFIED + Compliance PASSED): skip suppression, evaluate Jira autoclose. The IsPresent guard prevents a States.Runtime error on findings without a Compliance object (GuardDuty, Inspector, Macie, etc.)",
+            "Comment": "Close-eligible finding (NOTIFIED + Compliance PASSED or NOT_AVAILABLE, mirroring the close gate): skip suppression so a matching suppression rule cannot block the autoclose.",
             "And": [
               {
                 "Variable": "$.detail.findings[0].Workflow.Status",
@@ -23,12 +24,21 @@
                 "IsPresent": true
               },
               {
-                "Variable": "$.detail.findings[0].Compliance.Status",
-                "StringEquals": "PASSED"
+                "Or": [
+                  {
+                    "Variable": "$.detail.findings[0].Compliance.Status",
+                    "StringEquals": "PASSED"
+                  },
+                  {
+                    "Variable": "$.detail.findings[0].Compliance.Status",
+                    "StringEquals": "NOT_AVAILABLE"
+                  }
+                ]
               }
             ],
             "Next": "ChoiceJiraIntegration"
           },
+%{ endif ~}
           {
             "Comment": "Active finding (Workflow NEW or NOTIFIED): run the findings-manager suppression Lambda",
             "Or": [
