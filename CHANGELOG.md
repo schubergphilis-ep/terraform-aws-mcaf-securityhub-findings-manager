@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [7.2.2](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/compare/v7.2.1...v7.2.2) (2026-07-10)
+
+
+### 🐛 Fixes
+
+* improve reliability of the Jira autoclose functionality ([#3](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/issues/3)) ([691be4c](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/commit/691be4c4b7c89f1316d95e6ae4e3b390a215137b))
+
 ## [7.2.1](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/compare/v7.2.0...v7.2.1) (2026-07-07)
 
 
