@@ -5,7 +5,7 @@ locals {
   # Use a AWS provided layer to include Powertools to simplify the redistribution process.
   # Also see https://docs.powertools.aws.dev/lambda/python/latest/#lambda-layer.
   # See https://docs.aws.amazon.com/powertools/python/latest/getting-started/install/ for the available layer versions.
-  powertools_layer_arn = "arn:aws:lambda:${local.account_region}:017000801446:layer:AWSLambdaPowertoolsPythonV3-${replace(var.lambda_runtime, ".", "")}-x86_64:27"
+  powertools_layer_arn = "arn:aws:lambda:${local.account_region}:017000801446:layer:AWSLambdaPowertoolsPythonV3-${replace(var.lambda_runtime, ".", "")}-x86_64:33"
 }
 
 # Data Source to get the access to Account ID in which Terraform is authorized and the region configured on the provider
