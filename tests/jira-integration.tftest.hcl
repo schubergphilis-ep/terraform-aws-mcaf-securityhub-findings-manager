@@ -195,6 +195,147 @@ run "jira_enabled" {
     condition     = !strcontains(jsonencode(jsondecode(aws_sfn_state_machine.jira_orchestrator[0].definition).States.ChoiceSuppressor.Choices), "NOT_AVAILABLE")
     error_message = "ChoiceSuppressor must not bypass suppression for NOT_AVAILABLE findings when autoclose is disabled"
   }
+
+  # No product filter is rendered when neither include_product_names nor exclude_product_names is
+  # set, so every product reaches the Jira lambda.
+  assert {
+    condition = length([
+      for rule in jsondecode(aws_sfn_state_machine.jira_orchestrator[0].definition).States.ChoiceJiraIntegration.Choices[0].And :
+      rule if strcontains(try(rule.Comment, ""), "PRODUCT NAME FILTER")
+    ]) == 0
+    error_message = "No product name filter should be rendered when include_product_names and exclude_product_names are both empty"
+  }
+}
+
+run "jira_include_product_names" {
+  command = plan
+
+  variables {
+    kms_key_arn    = "arn:aws:kms:eu-west-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"
+    s3_bucket_name = "securityhub-findings-manager-jira-include-products"
+    rules_filepath = "examples/rules.yaml"
+
+    jira_integration = {
+      include_product_names = ["Security Hub", "GuardDuty"]
+
+      instances = {
+        prod = {
+          include_account_ids            = ["123456789000"]
+          project_key                    = "SEC"
+          credentials_secretsmanager_arn = "arn:aws:secretsmanager:eu-west-1:123456789012:secret:jira-creds"
+        }
+      }
+    }
+  }
+
+  # The include filter is an "Or" over the configured products: a finding matches when its
+  # ProductName equals any entry in the allow list.
+  assert {
+    condition = toset(flatten([
+      for rule in jsondecode(aws_sfn_state_machine.jira_orchestrator[0].definition).States.ChoiceJiraIntegration.Choices[0].And :
+      [for comparison in rule.Or : comparison.StringEquals]
+      if strcontains(try(rule.Comment, ""), "PRODUCT NAME FILTER")
+    ])) == toset(["Security Hub", "GuardDuty"])
+    error_message = "The include product filter must match exactly the configured include_product_names"
+  }
+
+  assert {
+    condition = alltrue(flatten([
+      for rule in jsondecode(aws_sfn_state_machine.jira_orchestrator[0].definition).States.ChoiceJiraIntegration.Choices[0].And :
+      [for comparison in rule.Or : comparison.Variable == "$.detail.findings[0].ProductName"]
+      if strcontains(try(rule.Comment, ""), "PRODUCT NAME FILTER")
+    ]))
+    error_message = "The include product filter must compare against the finding's ProductName"
+  }
+
+  # An include list must not render a negated (exclude) comparison, otherwise the allow list
+  # would silently behave as a deny list.
+  assert {
+    condition = length([
+      for rule in jsondecode(aws_sfn_state_machine.jira_orchestrator[0].definition).States.ChoiceJiraIntegration.Choices[0].And :
+      rule
+      if strcontains(try(rule.Comment, ""), "PRODUCT NAME FILTER") && can(rule.And)
+    ]) == 0
+    error_message = "The include product filter must not render negated ProductName comparisons"
+  }
+}
+
+run "jira_exclude_product_names" {
+  command = plan
+
+  variables {
+    kms_key_arn    = "arn:aws:kms:eu-west-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"
+    s3_bucket_name = "securityhub-findings-manager-jira-exclude-products"
+    rules_filepath = "examples/rules.yaml"
+
+    jira_integration = {
+      exclude_product_names = ["Inspector", "Macie"]
+
+      instances = {
+        prod = {
+          include_account_ids            = ["123456789000"]
+          project_key                    = "SEC"
+          credentials_secretsmanager_arn = "arn:aws:secretsmanager:eu-west-1:123456789012:secret:jira-creds"
+        }
+      }
+    }
+  }
+
+  # The exclude filter is an "And" of negated comparisons: a finding matches only when its
+  # ProductName equals none of the entries in the deny list.
+  assert {
+    condition = toset(flatten([
+      for rule in jsondecode(aws_sfn_state_machine.jira_orchestrator[0].definition).States.ChoiceJiraIntegration.Choices[0].And :
+      [for comparison in rule.And : comparison.Not.StringEquals]
+      if strcontains(try(rule.Comment, ""), "PRODUCT NAME FILTER")
+    ])) == toset(["Inspector", "Macie"])
+    error_message = "The exclude product filter must negate exactly the configured exclude_product_names"
+  }
+
+  assert {
+    condition = alltrue(flatten([
+      for rule in jsondecode(aws_sfn_state_machine.jira_orchestrator[0].definition).States.ChoiceJiraIntegration.Choices[0].And :
+      [for comparison in rule.And : comparison.Not.Variable == "$.detail.findings[0].ProductName"]
+      if strcontains(try(rule.Comment, ""), "PRODUCT NAME FILTER")
+    ]))
+    error_message = "The exclude product filter must compare against the finding's ProductName"
+  }
+
+  # An exclude list must not render a bare (include) comparison, otherwise the deny list would
+  # silently behave as an allow list.
+  assert {
+    condition = length([
+      for rule in jsondecode(aws_sfn_state_machine.jira_orchestrator[0].definition).States.ChoiceJiraIntegration.Choices[0].And :
+      rule
+      if strcontains(try(rule.Comment, ""), "PRODUCT NAME FILTER") && can(rule.Or)
+    ]) == 0
+    error_message = "The exclude product filter must not render non-negated ProductName comparisons"
+  }
+}
+
+run "jira_product_filters_are_mutually_exclusive" {
+  command = plan
+
+  variables {
+    kms_key_arn    = "arn:aws:kms:eu-west-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"
+    s3_bucket_name = "securityhub-findings-manager-jira-product-filter-conflict"
+    rules_filepath = "examples/rules.yaml"
+
+    jira_integration = {
+      exclude_product_names = ["Inspector"]
+      include_product_names = ["Security Hub"]
+
+      instances = {
+        prod = {
+          include_account_ids            = ["123456789000"]
+          project_key                    = "SEC"
+          credentials_secretsmanager_arn = "arn:aws:secretsmanager:eu-west-1:123456789012:secret:jira-creds"
+        }
+      }
+    }
+  }
+
+  expect_failures = [var.jira_integration]
 }
 
 run "jira_multiple_instances" {

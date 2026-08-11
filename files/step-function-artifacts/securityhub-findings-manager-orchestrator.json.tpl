@@ -128,6 +128,21 @@
                 ]
               },
 %{ endif ~}
+%{~ if length(exclude_product_names) > 0 }
+              {
+                "Comment": "PRODUCT NAME FILTER: Only process findings with ProductName not in the exclude list",
+                "And": [
+%{~ for idx, product_name in exclude_product_names }
+                  {
+                    "Not": {
+                      "Variable": "$.detail.findings[0].ProductName",
+                      "StringEquals": "${product_name}"
+                    }
+                  }%{if idx < length(exclude_product_names) - 1},%{endif}
+%{~ endfor }
+                ]
+              },
+%{ endif ~}
               {
                 "Comment": "Prevent duplicate Jira tickets: only create NEW tickets if note doesn't contain jiraIssue, OR allow ARCHIVED findings for closure",
                 "Or": [
