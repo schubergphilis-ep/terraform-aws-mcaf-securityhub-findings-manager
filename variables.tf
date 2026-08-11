@@ -93,6 +93,7 @@ variable "jira_integration" {
     autoclose_suppressed_findings         = optional(bool, false)
     autoclose_transition_name             = optional(string, "Close Issue")
     exclude_account_ids                   = optional(list(string), [])
+    exclude_product_names                 = optional(list(string), [])
     finding_severity_normalized_threshold = optional(number, 70)
     include_product_names                 = optional(list(string), [])
 
@@ -192,6 +193,14 @@ variable "jira_integration" {
       try(var.jira_integration.autoclose_enabled, false)
     )
     error_message = "When 'autoclose_suppressed_findings' is set to true, 'autoclose_enabled' must also be set to true."
+  }
+
+  validation {
+    condition = var.jira_integration == null || (
+      length(var.jira_integration.include_product_names) == 0 ||
+      length(var.jira_integration.exclude_product_names) == 0
+    )
+    error_message = "The 'include_product_names' and 'exclude_product_names' settings are mutually exclusive, set at most one of them."
   }
 }
 

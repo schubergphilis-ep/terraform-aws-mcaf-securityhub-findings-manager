@@ -10,7 +10,14 @@ resource "random_string" "suffix" {
 
 provider "aws" {}
 
-# Example: Create Jira tickets only for Security Hub findings
+# Example: Create Jira tickets only for Security Hub findings.
+#
+# Product filtering comes in two flavours, which are mutually exclusive - set at most one of them:
+#
+#   include_product_names = ["Security Hub"] # allow list: only these products create tickets
+#   exclude_product_names = ["Inspector"]    # deny list: every product except these creates tickets
+#
+# The deny list variant is shown below this module.
 module "securityhub_findings_manager" {
   source = "../.."
 
@@ -19,6 +26,30 @@ module "securityhub_findings_manager" {
 
   jira_integration = {
     include_product_names = ["Security Hub"]
+
+    instances = {
+      "default" = {
+        default_instance               = true
+        project_key                    = "SEC"
+        credentials_secretsmanager_arn = aws_secretsmanager_secret.jira_credentials.arn
+
+        issue_custom_fields = {
+          "customfield_10001" = "Security Team"
+        }
+      }
+    }
+  }
+}
+
+# Example: Create Jira tickets for every product except Inspector.
+module "securityhub_findings_manager_exclude_inspector" {
+  source = "../.."
+
+  s3_bucket_name = local.s3_bucket_name
+  kms_key_arn    = aws_kms_key.findings_manager.arn
+
+  jira_integration = {
+    exclude_product_names = ["Inspector"]
 
     instances = {
       "default" = {
