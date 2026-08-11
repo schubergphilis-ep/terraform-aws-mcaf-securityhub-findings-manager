@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [7.3.0](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/compare/v7.2.2...v7.3.0) (2026-08-11)
+
+
+### 🚀 Features
+
+* add jira_integration.exclude_product_names ([#8](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/issues/8)) ([4714af4](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/commit/4714af446bfff1a95ea2438385fd36ec8e4ad8d6))
+
 ## [7.2.2](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/compare/v7.2.1...v7.2.2) (2026-07-10)
 
 
