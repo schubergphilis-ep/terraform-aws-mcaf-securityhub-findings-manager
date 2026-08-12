@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [7.4.0](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/compare/v7.3.0...v7.4.0) (2026-08-12)
+
+
+### 🚀 Features
+
+* omit unset Jira instance attributes from JIRA_INSTANCES_CONFIG ([#10](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/issues/10)) ([bcc9459](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/commit/bcc94596a1eecf036801b78b01b8ce063cd4b204))
+
 ## [7.3.0](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/compare/v7.2.2...v7.3.0) (2026-08-11)
 
 
