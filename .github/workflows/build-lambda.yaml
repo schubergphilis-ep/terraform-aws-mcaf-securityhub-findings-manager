@@ -29,10 +29,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -69,7 +69,7 @@ jobs:
           zip -g ../../../$PKG_DIR/lambda_${{ matrix.lambda-name }}_python${{ matrix.python-version }}.zip -r  * --exclude venv/\*
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lambda_${{ matrix.lambda-name }}_python${{ matrix.python-version }}.zip
           path: files/pkg/lambda_${{ matrix.lambda-name }}_python${{ matrix.python-version }}.zip
@@ -81,19 +81,19 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Remove old pkg artifacts
         run: rm -rf files/pkg/
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: files/pkg/
           merge-multiple: true
 
       - name: Commit deployment packages
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "Add all Lambda deployment packages"
           file_pattern: "files/pkg/*.zip"

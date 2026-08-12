@@ -19,6 +19,32 @@ locals {
     for instance_key, instance in var.jira_integration.instances : instance.credentials_ssm_secret_arn
     if instance.enabled != false && instance.credentials_ssm_secret_arn != null && instance.credentials_ssm_secret_arn != "REDACTED"
   ] : []
+
+  jira_instances = var.jira_integration == null ? {} : var.jira_integration.instances
+
+  # Per-instance config shipped to the Jira lambda as the JIRA_INSTANCES_CONFIG environment
+  # variable. Lambda caps the total size of all environment variables at 4 KB, which a config with
+  # many instances can exceed, so attributes that convey nothing are dropped instead of being
+  # serialised as `null`, `{}`, `[]` or `false`. The lambda reads each of them with a matching
+  # `.get()` default, so an absent key produces the same behaviour as the value dropped here.
+  #
+  # enabled is the exception and is always emitted, so a disabled instance can never end up one
+  # dropped key away from being silently re-enabled.
+  jira_instances_config = {
+    for instance_key, instance in local.jira_instances : instance_key => merge(
+      {
+        enabled     = instance.enabled
+        project_key = instance.project_key
+      },
+      instance.credentials_secretsmanager_arn == null ? {} : { credentials_secretsmanager_arn = instance.credentials_secretsmanager_arn },
+      instance.credentials_ssm_secret_arn == null ? {} : { credentials_ssm_secret_arn = instance.credentials_ssm_secret_arn },
+      instance.default_instance == false ? {} : { default_instance = instance.default_instance },
+      instance.include_intermediate_transition == null ? {} : { include_intermediate_transition = instance.include_intermediate_transition },
+      instance.issue_type == null ? {} : { issue_type = instance.issue_type },
+      length(instance.include_account_ids) == 0 ? {} : { include_account_ids = instance.include_account_ids },
+      length(instance.issue_custom_fields) == 0 ? {} : { issue_custom_fields = instance.issue_custom_fields },
+    )
+  }
 }
 
 data "aws_iam_policy_document" "jira_lambda_iam_role" {
@@ -134,8 +160,8 @@ module "jira_lambda" {
   timeout                     = var.jira_integration.lambda_settings.timeout
 
   environment = {
-    # Multi-instance configuration as JSON
-    JIRA_INSTANCES_CONFIG = jsonencode(var.jira_integration.instances)
+    # Multi-instance configuration as JSON, with unset optional attributes omitted
+    JIRA_INSTANCES_CONFIG = jsonencode(local.jira_instances_config)
 
     # Global settings
     EXCLUDE_ACCOUNT_FILTER    = jsonencode(var.jira_integration.exclude_account_ids)
