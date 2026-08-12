@@ -378,6 +378,92 @@ run "jira_multiple_instances" {
   }
 }
 
+# The JIRA_INSTANCES_CONFIG environment variable counts against Lambda's 4 KB total environment
+# size limit, which deployments with many instances can exceed. Attributes that were never set must
+# therefore be omitted from the JSON rather than serialised as `null` / `{}` / `[]`; the lambda
+# supplies its own default for each, so an absent key is what selects that default.
+run "jira_instances_config_omits_unset_attributes" {
+  command = plan
+
+  variables {
+    kms_key_arn    = "arn:aws:kms:eu-west-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"
+    s3_bucket_name = "securityhub-findings-manager-jira-config-trim"
+    rules_filepath = "examples/rules.yaml"
+
+    jira_integration = {
+      instances = {
+        # Nothing but the required attributes, one credentials source, and the default_instance
+        # flag that an instance without include_account_ids is required to set.
+        minimal = {
+          default_instance               = true
+          project_key                    = "MIN"
+          credentials_secretsmanager_arn = "arn:aws:secretsmanager:eu-west-1:123456789012:secret:jira-minimal-creds"
+        }
+        # Every optional attribute populated, using the SSM credentials source. default_instance is
+        # set explicitly to false to prove it is dropped whether defaulted or spelled out.
+        full = {
+          credentials_ssm_secret_arn      = "arn:aws:ssm:eu-west-1:123456789012:parameter/jira-full-creds"
+          default_instance                = false
+          enabled                         = false
+          include_account_ids             = ["123456789001"]
+          include_intermediate_transition = "In Progress"
+          issue_custom_fields             = { customfield_10001 = "value" }
+          issue_type                      = "Bug"
+          project_key                     = "FULL"
+        }
+      }
+    }
+  }
+
+  # Attributes conveying nothing must not appear at all, not as null / an empty collection / false.
+  # default_instance is true here, so it survives; enabled is always emitted.
+  assert {
+    condition = toset(keys(local.jira_instances_config.minimal)) == toset([
+      "credentials_secretsmanager_arn",
+      "default_instance",
+      "enabled",
+      "project_key",
+    ])
+    error_message = "Redundant attributes must be omitted from the instance config, got: ${jsonencode(keys(local.jira_instances_config.minimal))}"
+  }
+
+  # Populated attributes must all be emitted, so trimming cannot silently drop real config. This
+  # instance sets issue_type, so it must survive; its explicit default_instance = false must not.
+  assert {
+    condition = toset(keys(local.jira_instances_config.full)) == toset([
+      "credentials_ssm_secret_arn",
+      "enabled",
+      "include_account_ids",
+      "include_intermediate_transition",
+      "issue_custom_fields",
+      "issue_type",
+      "project_key",
+    ])
+    error_message = "Populated attributes must be preserved and default_instance = false dropped, got: ${jsonencode(keys(local.jira_instances_config.full))}"
+  }
+
+  # The unused credentials source is the padding that dominates a large config; assert across both
+  # instances so neither credentials branch reintroduces a null.
+  assert {
+    condition     = !strcontains(jsonencode(local.jira_instances_config), "null")
+    error_message = "The serialised instance config must not contain any null values"
+  }
+
+  # Values must survive trimming unchanged, including the booleans that are always emitted.
+  assert {
+    condition = (
+      local.jira_instances_config.full.issue_custom_fields["customfield_10001"] == "value" &&
+      length(local.jira_instances_config.full.issue_custom_fields) == 1 &&
+      local.jira_instances_config.full.include_intermediate_transition == "In Progress" &&
+      local.jira_instances_config.full.issue_type == "Bug" &&
+      local.jira_instances_config.full.enabled == false &&
+      local.jira_instances_config.minimal.default_instance == true &&
+      local.jira_instances_config.minimal.enabled == true
+    )
+    error_message = "Instance config values must be passed through unchanged"
+  }
+}
+
 run "jira_autoclose" {
   command = plan
 

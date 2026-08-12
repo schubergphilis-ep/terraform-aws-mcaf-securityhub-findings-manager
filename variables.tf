@@ -129,7 +129,7 @@ variable "jira_integration" {
       include_account_ids             = optional(list(string), [])
       include_intermediate_transition = optional(string)
       issue_custom_fields             = optional(map(string), {})
-      issue_type                      = optional(string, "Security Advisory")
+      issue_type                      = optional(string) # Defaults to "Security Advisory" in the jira lambda code if not provided
       project_key                     = string
     })), {})
   })

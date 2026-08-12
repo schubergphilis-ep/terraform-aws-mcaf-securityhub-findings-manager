@@ -17,7 +17,8 @@ REQUIRED_ENV_VARS = [
 ]
 
 DEFAULT_JIRA_AUTOCLOSE_COMMENT = 'Security Hub finding has been resolved. Autoclosing the issue.'
-DEFAULT_JIRA_AUTOCLOSE_TRANSITION = 'Done'
+DEFAULT_JIRA_AUTOCLOSE_TRANSITION = 'Close Issue'
+DEFAULT_JIRA_ISSUE_TYPE = 'Security Advisory'
 
 STATUS_NEW = 'NEW'
 STATUS_NOTIFIED = 'NOTIFIED'
@@ -69,7 +70,7 @@ def lambda_handler(event: dict, context: LambdaContext):
 
     # Extract instance-specific configuration
     jira_issue_custom_fields = instance_config.get('issue_custom_fields', {})
-    jira_issue_type = instance_config.get('issue_type', 'Security Advisory')
+    jira_issue_type = instance_config.get('issue_type', DEFAULT_JIRA_ISSUE_TYPE)
     jira_project_key = instance_config['project_key']
     jira_secret_arn = instance_config.get('credentials_secretsmanager_arn') or instance_config.get('credentials_ssm_secret_arn')
     jira_secret_type = 'SECRETSMANAGER' if instance_config.get('credentials_secretsmanager_arn') else 'SSM'
