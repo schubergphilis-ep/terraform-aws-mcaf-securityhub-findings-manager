@@ -10,16 +10,6 @@ resource "random_string" "suffix" {
 
 provider "aws" {}
 
-data "aws_caller_identity" "current" {}
-
-module "kms" {
-  source  = "schubergphilis-ep/mcaf-kms/aws"
-  version = "~> 0.3.0"
-
-  name   = "securityhub-findings-manager"
-  policy = templatefile("${path.module}/../kms.json", { account_id = data.aws_caller_identity.current.account_id })
-}
-
 ################################################################################
 # Example of Jira integration with Findings Manager using Credentials from Secrets Manager
 ################################################################################
@@ -27,7 +17,7 @@ module "kms" {
 resource "aws_secretsmanager_secret" "jira_credentials" {
   #checkov:skip=CKV2_AWS_57: automatic rotation of the jira credentials is recommended.
   description = "Security Hub Findings Manager Jira Credentials Secret"
-  kms_key_id  = module.kms.arn
+  kms_key_id  = module.aws_securityhub_findings_manager_with_secretsmanager_credentials.kms_key_arn
   name        = "lambda/securityhub_findings_manager/jira_credentials_secret"
 }
 
@@ -43,7 +33,6 @@ resource "aws_secretsmanager_secret_version" "jira_credentials" {
 module "aws_securityhub_findings_manager_with_secretsmanager_credentials" {
   source = "../../"
 
-  kms_key_arn    = module.kms.arn
   s3_bucket_name = local.s3_bucket_name
   rules_filepath = "${path.module}/../rules.yaml"
 
@@ -63,6 +52,10 @@ module "aws_securityhub_findings_manager_with_secretsmanager_credentials" {
       ip_protocol = "tcp"
       to_port     = 443
     }]
+  }
+
+  kms_key_configuration = {
+    iam_arns_administrator = ["arn:aws:iam::123456789012:role/key-admin"]
   }
 
   tags = { Terraform = true }
@@ -92,7 +85,7 @@ resource "aws_ssm_parameter" "jira_credentials" {
 module "aws_securityhub_findings_manager_with_ssm_credentials" {
   source = "../../"
 
-  kms_key_arn    = module.kms.arn
+  kms_key_arn    = module.aws_securityhub_findings_manager_with_secretsmanager_credentials.kms_key_arn
   s3_bucket_name = local.s3_bucket_name
   rules_filepath = "${path.module}/../rules.yaml"
 

@@ -7,7 +7,7 @@ module "findings_manager_bucket" {
 
   name        = var.s3_bucket_name
   name_prefix = var.s3_bucket_name != null ? null : "findings-manager-"
-  kms_key_arn = var.kms_key_arn
+  kms_key_arn = local.kms_key_arn
   logging     = null
   region      = var.region
   tags        = var.tags
