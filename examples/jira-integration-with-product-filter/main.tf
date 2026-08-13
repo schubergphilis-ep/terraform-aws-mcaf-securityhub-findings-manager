@@ -22,7 +22,6 @@ module "securityhub_findings_manager" {
   source = "../.."
 
   s3_bucket_name = local.s3_bucket_name
-  kms_key_arn    = aws_kms_key.findings_manager.arn
 
   jira_integration = {
     include_product_names = ["Security Hub"]
@@ -39,6 +38,10 @@ module "securityhub_findings_manager" {
       }
     }
   }
+
+  kms_key_configuration = {
+    iam_arns_administrator = ["arn:aws:iam::123456789012:role/key-admin"]
+  }
 }
 
 # Example: Create Jira tickets for every product except Inspector.
@@ -46,7 +49,6 @@ module "securityhub_findings_manager_exclude_inspector" {
   source = "../.."
 
   s3_bucket_name = local.s3_bucket_name
-  kms_key_arn    = aws_kms_key.findings_manager.arn
 
   jira_integration = {
     exclude_product_names = ["Inspector"]
@@ -63,19 +65,16 @@ module "securityhub_findings_manager_exclude_inspector" {
       }
     }
   }
-}
 
-# KMS key for encryption
-resource "aws_kms_key" "findings_manager" {
-  description             = "KMS key for Security Hub Findings Manager"
-  deletion_window_in_days = 7
-  enable_key_rotation     = true
+  kms_key_configuration = {
+    iam_arns_administrator = ["arn:aws:iam::123456789012:role/key-admin"]
+  }
 }
 
 # Secret for Jira credentials
 resource "aws_secretsmanager_secret" "jira_credentials" {
   name       = "jira-credentials"
-  kms_key_id = aws_kms_key.findings_manager.id
+  kms_key_id = module.securityhub_findings_manager.kms_key_arn
 }
 
 # Example secret value (populate with your actual credentials)

@@ -1,21 +1,14 @@
 provider "aws" {}
 
-data "aws_caller_identity" "current" {}
-
-module "kms" {
-  source  = "schubergphilis-ep/mcaf-kms/aws"
-  version = "~> 0.3.0"
-
-  name   = "securityhub-findings-manager"
-  policy = templatefile("${path.module}/../kms.json", { account_id = data.aws_caller_identity.current.account_id })
-}
-
 # It can take a long time before S3 notifications become active
 # You may want to deploy an empty set of rules before the actual ones or do a trick with yaml comments
 module "aws_securityhub_findings_manager" {
   source = "../../"
 
-  kms_key_arn    = module.kms.arn
   rules_filepath = "${path.module}/../rules.yaml"
   tags           = { Terraform = true }
+
+  kms_key_configuration = {
+    iam_arns_administrator = ["arn:aws:iam::123456789012:role/key-admin"]
+  }
 }

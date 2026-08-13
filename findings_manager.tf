@@ -59,7 +59,7 @@ data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
     ]
     effect = "Allow"
     resources = [
-      var.kms_key_arn
+      local.kms_key_arn
     ]
   }
 
@@ -81,7 +81,7 @@ data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
 resource "aws_s3_object" "findings_manager_lambdas_deployment_package" {
   bucket      = module.findings_manager_bucket.id
   key         = "lambda_securityhub-findings-manager_${var.lambda_runtime}.zip"
-  kms_key_id  = var.kms_key_arn
+  kms_key_id  = local.kms_key_arn
   region      = var.region
   source      = "${path.module}/files/pkg/lambda_securityhub-findings-manager_${var.lambda_runtime}.zip"
   source_hash = filemd5("${path.module}/files/pkg/lambda_securityhub-findings-manager_${var.lambda_runtime}.zip")
@@ -102,7 +102,7 @@ module "findings_manager_events_lambda" {
   create_s3_dummy_object      = false
   description                 = "Lambda to manage Security Hub findings in response to an EventBridge event"
   handler                     = "securityhub_events.lambda_handler"
-  kms_key_arn                 = var.kms_key_arn
+  kms_key_arn                 = local.kms_key_arn
   layers                      = [local.powertools_layer_arn]
   log_retention               = 365
   memory_size                 = var.findings_manager_events_lambda.memory_size
@@ -324,7 +324,7 @@ module "findings_manager_trigger_lambda" {
   create_s3_dummy_object      = false
   description                 = "Lambda to manage Security Hub findings in response to S3 rules file uploads"
   handler                     = "securityhub_trigger.lambda_handler"
-  kms_key_arn                 = var.kms_key_arn
+  kms_key_arn                 = local.kms_key_arn
   layers                      = [local.powertools_layer_arn]
   log_retention               = 365
   memory_size                 = var.findings_manager_trigger_lambda.memory_size
@@ -393,7 +393,7 @@ module "findings_manager_worker_lambda" {
   create_s3_dummy_object      = false
   description                 = "Lambda to manage Security Hub findings in response to rules on SQS"
   handler                     = "securityhub_trigger_worker.lambda_handler"
-  kms_key_arn                 = var.kms_key_arn
+  kms_key_arn                 = local.kms_key_arn
   layers                      = [local.powertools_layer_arn]
   log_retention               = 365
   memory_size                 = var.findings_manager_worker_lambda.memory_size
@@ -439,7 +439,7 @@ resource "aws_s3_object" "rules" {
 # SQS queue to distribute the rules to the lambda worker
 resource "aws_sqs_queue" "findings_manager_rule_q" {
   name                       = "SecurityHubFindingsManagerRuleQueue"
-  kms_master_key_id          = var.kms_key_arn
+  kms_master_key_id          = local.kms_key_arn
   region                     = var.region
   visibility_timeout_seconds = var.findings_manager_worker_lambda.timeout
   # Queue visibility timeout needs to >= Function timeout
@@ -453,7 +453,7 @@ resource "aws_sqs_queue_policy" "findings_manager_rule_sqs_policy" {
 
 resource "aws_sqs_queue" "dlq_for_findings_manager_rule_q" {
   name              = "DlqForSecurityHubFindingsManagerRuleQueue"
-  kms_master_key_id = var.kms_key_arn
+  kms_master_key_id = local.kms_key_arn
   region            = var.region
 }
 

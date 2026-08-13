@@ -114,7 +114,7 @@ data "aws_iam_policy_document" "jira_lambda_iam_role" {
     ]
     effect = "Allow"
     resources = [
-      var.kms_key_arn
+      local.kms_key_arn
     ]
   }
 }
@@ -125,7 +125,7 @@ resource "aws_s3_object" "jira_lambda_deployment_package" {
 
   bucket      = module.findings_manager_bucket.id
   key         = "lambda_${var.jira_integration.lambda_settings.name}_${var.lambda_runtime}.zip"
-  kms_key_id  = var.kms_key_arn
+  kms_key_id  = local.kms_key_arn
   region      = var.region
   source      = "${path.module}/files/pkg/lambda_findings-manager-jira_${var.lambda_runtime}.zip"
   source_hash = filemd5("${path.module}/files/pkg/lambda_findings-manager-jira_${var.lambda_runtime}.zip")
@@ -144,7 +144,7 @@ module "jira_lambda" {
   create_s3_dummy_object      = false
   description                 = "Lambda to create jira ticket and set the Security Hub workflow status to notified"
   handler                     = "findings_manager_jira.lambda_handler"
-  kms_key_arn                 = var.kms_key_arn
+  kms_key_arn                 = local.kms_key_arn
   layers                      = [local.powertools_layer_arn]
   log_retention               = 365
   memory_size                 = var.jira_integration.lambda_settings.memory_size

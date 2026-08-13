@@ -1,6 +1,7 @@
 locals {
   account_id     = data.aws_caller_identity.current.account_id
   account_region = var.region != null ? var.region : data.aws_region.current.region
+  kms_key_arn    = var.kms_key_arn != null ? var.kms_key_arn : module.kms_key[0].arn
 
   # Use a AWS provided layer to include Powertools to simplify the redistribution process.
   # Also see https://docs.powertools.aws.dev/lambda/python/latest/#lambda-layer.

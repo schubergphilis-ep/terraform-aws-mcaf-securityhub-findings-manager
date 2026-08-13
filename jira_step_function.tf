@@ -67,7 +67,7 @@ resource "aws_cloudwatch_log_group" "log_group_jira_orchestrator_sfn" {
   name              = "/aws/sfn/${local.sfn_jira_orchestrator_name}"
   region            = var.region
   retention_in_days = var.jira_integration.step_function_settings.retention
-  kms_key_id        = var.kms_key_arn
+  kms_key_id        = local.kms_key_arn
 }
 
 # Step Function to orchestrate findings manager lambda functions
