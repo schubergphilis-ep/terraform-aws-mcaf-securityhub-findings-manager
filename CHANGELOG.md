@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [7.5.0](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/compare/v7.4.0...v7.5.0) (2026-08-13)
+
+
+### 🚀 Features
+
+* create kms key for encrypting resources created by the module ([#12](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/issues/12)) ([cf6d465](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/commit/cf6d465ba4cc49ca71837a221e18bb65cf15532b))
+
 ## [7.4.0](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/compare/v7.3.0...v7.4.0) (2026-08-12)
 
 
