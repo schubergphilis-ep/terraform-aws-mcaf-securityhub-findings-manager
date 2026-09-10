@@ -103,7 +103,6 @@ module "findings_manager_events_lambda" {
   description                 = "Lambda to manage Security Hub findings in response to an EventBridge event"
   handler                     = "securityhub_events.lambda_handler"
   kms_key_arn                 = local.kms_key_arn
-  layers                      = [local.powertools_layer_arn]
   log_retention               = 365
   memory_size                 = var.findings_manager_events_lambda.memory_size
   region                      = var.region
@@ -116,6 +115,10 @@ module "findings_manager_events_lambda" {
   subnet_ids                  = var.subnet_ids
   tags                        = var.tags
   timeout                     = var.findings_manager_events_lambda.timeout
+
+  # Since the value is read from a public SSM parameter,
+  # it is explicitly marked as nonsensitive to provide visibility in terraform plans.
+  layers = [nonsensitive(local.powertools_layer_arn)]
 
   environment = {
     S3_BUCKET_NAME              = module.findings_manager_bucket.name
@@ -325,7 +328,6 @@ module "findings_manager_trigger_lambda" {
   description                 = "Lambda to manage Security Hub findings in response to S3 rules file uploads"
   handler                     = "securityhub_trigger.lambda_handler"
   kms_key_arn                 = local.kms_key_arn
-  layers                      = [local.powertools_layer_arn]
   log_retention               = 365
   memory_size                 = var.findings_manager_trigger_lambda.memory_size
   region                      = var.region
@@ -338,6 +340,10 @@ module "findings_manager_trigger_lambda" {
   subnet_ids                  = var.subnet_ids
   tags                        = var.tags
   timeout                     = var.findings_manager_trigger_lambda.timeout
+
+  # Since the value is read from a public SSM parameter,
+  # it is explicitly marked as nonsensitive to provide visibility in terraform plans.
+  layers = [nonsensitive(local.powertools_layer_arn)]
 
   environment = {
     S3_BUCKET_NAME              = module.findings_manager_bucket.name
@@ -394,7 +400,6 @@ module "findings_manager_worker_lambda" {
   description                 = "Lambda to manage Security Hub findings in response to rules on SQS"
   handler                     = "securityhub_trigger_worker.lambda_handler"
   kms_key_arn                 = local.kms_key_arn
-  layers                      = [local.powertools_layer_arn]
   log_retention               = 365
   memory_size                 = var.findings_manager_worker_lambda.memory_size
   region                      = var.region
@@ -407,6 +412,10 @@ module "findings_manager_worker_lambda" {
   subnet_ids                  = var.subnet_ids
   tags                        = var.tags
   timeout                     = var.findings_manager_worker_lambda.timeout
+
+  # Since the value is read from a public SSM parameter,
+  # it is explicitly marked as nonsensitive to provide visibility in terraform plans.
+  layers = [nonsensitive(local.powertools_layer_arn)]
 
   environment = {
     LOG_LEVEL                   = var.findings_manager_worker_lambda.log_level
