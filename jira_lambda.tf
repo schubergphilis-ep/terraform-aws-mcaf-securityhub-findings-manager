@@ -145,7 +145,6 @@ module "jira_lambda" {
   description                 = "Lambda to create jira ticket and set the Security Hub workflow status to notified"
   handler                     = "findings_manager_jira.lambda_handler"
   kms_key_arn                 = local.kms_key_arn
-  layers                      = [local.powertools_layer_arn]
   log_retention               = 365
   memory_size                 = var.jira_integration.lambda_settings.memory_size
   region                      = var.region
@@ -158,6 +157,10 @@ module "jira_lambda" {
   subnet_ids                  = var.subnet_ids
   tags                        = var.tags
   timeout                     = var.jira_integration.lambda_settings.timeout
+
+  # Since the value is read from a public SSM parameter,
+  # it is explicitly marked as nonsensitive to provide visibility in terraform plans.
+  layers = [nonsensitive(local.powertools_layer_arn)]
 
   environment = {
     # Multi-instance configuration as JSON, with unset optional attributes omitted

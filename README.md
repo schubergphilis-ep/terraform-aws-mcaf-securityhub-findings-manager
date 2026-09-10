@@ -159,6 +159,7 @@ A lambda layer provides aws-lambda-powertools. To have these dependencies locall
 | [aws_iam_policy_document.jira_step_function_iam_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.kms_key_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
+| [aws_ssm_parameter.powertools_layer_arn](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ssm_parameter) | data source |
 
 ## Inputs
 
@@ -173,6 +174,7 @@ A lambda layer provides aws-lambda-powertools. To have these dependencies locall
 | <a name="input_kms_key_arn"></a> [kms\_key\_arn](#input\_kms\_key\_arn) | The ARN of the KMS key used to encrypt the resources | `string` | `null` | no |
 | <a name="input_kms_key_configuration"></a> [kms\_key\_configuration](#input\_kms\_key\_configuration) | Access configuration for the KMS key created by this module. Only applicable when 'kms\_key\_arn' is null. 'iam\_arns\_administrator' grants permissions to manage the key (no cryptographic use). 'name' sets the alias/name of the created key. | <pre>object({<br/>    iam_arns_administrator = list(string)<br/>    name                   = optional(string, "findings-manager")<br/>  })</pre> | `null` | no |
 | <a name="input_lambda_runtime"></a> [lambda\_runtime](#input\_lambda\_runtime) | The version of Python to use for the Lambda functions | `string` | `"python3.12"` | no |
+| <a name="input_powertools_layer_version"></a> [powertools\_layer\_version](#input\_powertools\_layer\_version) | The version of the Powertools Lambda layer to use. If omitted the latest version is used. | `string` | `null` | no |
 | <a name="input_region"></a> [region](#input\_region) | The AWS region where the resources will be created. If omitted, the default provider region is used. | `string` | `null` | no |
 | <a name="input_rules_filepath"></a> [rules\_filepath](#input\_rules\_filepath) | Pathname to the file that stores the manager rules | `string` | `""` | no |
 | <a name="input_rules_s3_object_name"></a> [rules\_s3\_object\_name](#input\_rules\_s3\_object\_name) | The S3 object containing the rules to be applied to Security Hub findings manager | `string` | `"rules.yaml"` | no |
