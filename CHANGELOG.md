@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [7.6.0](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/compare/v7.5.0...v7.6.0) (2026-09-10)
+
+
+### 🚀 Features
+
+* default to latest powertools layer arn ([#14](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/issues/14)) ([41fe8b0](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/commit/41fe8b0a0482767211fc8a7ae21f20b8e6d6aa86))
+
 ## [7.5.0](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/compare/v7.4.0...v7.5.0) (2026-08-13)
 
 
