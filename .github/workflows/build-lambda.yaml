@@ -58,6 +58,9 @@ jobs:
           # dependency accidentally pulling it (and its typing_extensions dependency) back into
           # requirements.txt should not end up duplicated inside the deployment package too.
           rm -rf aws_lambda_powertools* typing_extensions*
+          # The venv seeds pip (and 'pip install --upgrade pip' refreshes it) into site-packages;
+          # the Lambda never uses it, so keep it out of the deployment package.
+          rm -rf pip* _distutils_hack* setuptools* pkg_resources* distutils-precedence.pth
           find . -name '*.so' -type f -exec strip "{}" \;
           find . -wholename "*/tests/*" -type f -delete
           find . -regex '^.*\(__pycache__\|\.py[co]\)$' -delete
@@ -71,7 +74,7 @@ jobs:
           # Package the lambda function. Package the dependencies and then add the source code to the created zip to ensure a flat archive structure.
           zip -r ../../../../../../../$PKG_DIR/lambda_${{ matrix.lambda-name }}_python${{ matrix.python-version }}.zip .
           cd ../../../../
-          zip -g ../../../$PKG_DIR/lambda_${{ matrix.lambda-name }}_python${{ matrix.python-version }}.zip -r  * --exclude venv/\*
+          zip -g ../../../$PKG_DIR/lambda_${{ matrix.lambda-name }}_python${{ matrix.python-version }}.zip -r  * --exclude venv/\* --exclude requirements-dev.txt
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
