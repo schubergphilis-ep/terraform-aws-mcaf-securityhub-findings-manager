@@ -24,16 +24,8 @@ jobs:
 
     strategy:
       matrix:
-        # securityhub-findings-manager now depends on awsfindingsmanagerlib v2, which requires Python >= 3.12,
-        # so it is only built for 3.12. findings-manager-jira has no such constraint and keeps
-        # both supported versions.
-        include:
-          - python-version: "3.12"
-            lambda-name: "securityhub-findings-manager"
-          - python-version: "3.11"
-            lambda-name: "findings-manager-jira"
-          - python-version: "3.12"
-            lambda-name: "findings-manager-jira"
+        python-version: ["3.12"] # singly entry until Python >3.12 is supported by all dependencies
+        lambda-name: ["securityhub-findings-manager", "findings-manager-jira"]
 
     steps:
       - name: Checkout repository
