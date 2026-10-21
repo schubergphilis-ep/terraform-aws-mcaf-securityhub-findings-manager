@@ -20,7 +20,7 @@ Two consequences of this switch:
 
 awsfindingsmanagerlib 2.x's rule filters map directly onto the Security Hub `get_findings`/`batch_update_findings`
 boto3 API, rather than a custom, narrower matching schema. The table below maps every
-`match_on` key used by this module's own `examples/rules.yaml` onto its 2.x equivalent; see
+`match_on` key supported by the 1.x library onto its 2.x equivalent; see
 the library's [documentation](https://schubergphilis-ep.github.io/awsfindingsmanagerlib/) for the full rule syntax and
 its own [UPGRADING.md](https://github.com/schubergphilis-ep/awsfindingsmanagerlib/blob/main/UPGRADING.md) migration guide.
 
@@ -32,6 +32,9 @@ its own [UPGRADING.md](https://github.com/schubergphilis-ep/awsfindingsmanagerli
 | `match_on.tags` (a list of `{key, value}`, matching any of them) | `Filters.ResourceTags` (a list of `{Key, Value, Comparison: EQUALS}`; multiple entries are also matched as "any of") |
 | `match_on.resource_id_regexps` | `ExtraFeatures.RegexStringFilters.ResourceId` |
 | `match_on.regions` | `Filters.Region` |
+| `match_on.rule_or_control_id` | `Filters.ProductFields` with `Key: ControlId` and `Key: RuleId` (1.x matched either, depending on the standard) |
+| `match_on.title` | `Filters.Title` |
+| `match_on.product_name` | `Filters.ProductName` |
 
 awsfindingsmanagerlib 1.x's default filter (`WorkflowStatus` in `NEW`/`NOTIFIED`, applied to every
 rule automatically) and its Jira-compatible JSON note merging (so that suppressing a finding
@@ -59,55 +62,133 @@ ManagerConfig:
         Key: Note
 ```
 
-The script below can be used to easily convert your current `rules.yaml` file to the new format.
-It only converts the `Rules` list itself (the `match_on` -> `Filters`/`ExtraFeatures` mapping from
-the table above); paste the `ManagerConfig` block shown above ahead of its output yourself, since
-that's also where `Note.UpdatedBy` must come from - Security Hub's API rejects a `Note` without
-one.
+The script below converts a 1.x `rules.yaml` to a complete 2.x document, including the `ManagerConfig` block above
+(that's also where `Note.UpdatedBy` comes from - Security Hub's API rejects a `Note` without one).
+It declares its own dependencies ([PEP 723](https://peps.python.org/pep-0723/)), so with
+[uv](https://docs.astral.sh/uv/) you can save it as `convert.py` and run it directly:
+
+```shell
+uv run convert.py rules.yaml > rules-v2.yaml
+```
+
+The input path is optional (default: `rules.yaml`). The converted document goes to stdout, and it is validated with
+`awsfindingsmanagerlib` itself before it is printed, so a failure means the result is not a valid 2.x document.
+No AWS credentials are needed. Review the `ManagerConfig` block it prints and adjust it to the defaults you relied on.
 
 ```python
+# /// script
+# requires-python = ">=3.12,<3.13"  # awsfindingsmanagerlib 2.0.0 does not yet run on 3.13
+# dependencies = ["awsfindingsmanagerlib>=2,<3", "pyyaml"]
+# ///
+import sys
+from pathlib import Path
+
+import boto3
 import yaml
 
-old_rules = yaml.safe_load(open('rules.yaml'))['Rules']
+from awsfindingsmanagerlib import Manager
+
+SUPPORTED_MATCH_ON_KEYS = {
+    "security_control_id",
+    "rule_or_control_id",
+    "title",
+    "product_name",
+    "regions",
+    "tags",
+    "resource_id_regexps",
+}
+
+
+def equals(values):
+    return [{"Value": value, "Comparison": "EQUALS"} for value in values]
 
 
 def convert(rule):
-    match_on = rule.get('match_on', {})
+    match_on = rule.get("match_on", {})
+    unknown_keys = set(match_on) - SUPPORTED_MATCH_ON_KEYS
+    if unknown_keys:
+        # Fail rather than silently drop a condition and suppress too much.
+        msg = f"Unsupported match_on key(s) {sorted(unknown_keys)} in rule: {rule}"
+        raise ValueError(msg)
+
     filters = {}
 
-    if 'security_control_id' in match_on:
-        filters['ComplianceSecurityControlId'] = [
-            {'Value': match_on['security_control_id'], 'Comparison': 'EQUALS'}
+    if "security_control_id" in match_on:
+        filters["ComplianceSecurityControlId"] = equals(
+            [match_on["security_control_id"]]
+        )
+    if "rule_or_control_id" in match_on:
+        # The old library matched either field, depending on the standard.
+        filters["ProductFields"] = [
+            {
+                "Key": key,
+                "Value": match_on["rule_or_control_id"],
+                "Comparison": "EQUALS",
+            }
+            for key in ("ControlId", "RuleId")
         ]
-    if 'regions' in match_on:
-        filters['Region'] = [
-            {'Value': region, 'Comparison': 'EQUALS'} for region in match_on['regions']
-        ]
-    if 'tags' in match_on:
-        filters['ResourceTags'] = [
-            {'Key': tag['key'], 'Value': tag['value'], 'Comparison': 'EQUALS'}
-            for tag in match_on['tags']
+    if "title" in match_on:
+        filters["Title"] = equals([match_on["title"]])
+    if "product_name" in match_on:
+        filters["ProductName"] = equals([match_on["product_name"]])
+    if "regions" in match_on:
+        filters["Region"] = equals(match_on["regions"])
+    if "tags" in match_on:
+        filters["ResourceTags"] = [
+            {"Key": tag["key"], "Value": tag["value"], "Comparison": "EQUALS"}
+            for tag in match_on["tags"]
         ]
 
-    new_rule = {
-        'Filters': filters,
-        'UpdatesToFilteredFindings': {
-            'Workflow': {'Status': rule['action']},
-            'Note': {'Text': rule['note']},
-        },
-    }
+    updates = {"Note": {"Text": rule["note"]}}
+    # SUPPRESSED is already the default in ManagerConfig.DefaultRuleInput.
+    if rule["action"] != "SUPPRESSED":
+        updates["Workflow"] = {"Status": rule["action"]}
 
-    if 'resource_id_regexps' in match_on:
-        new_rule['ExtraFeatures'] = {
-            'RegexStringFilters': {'ResourceId': match_on['resource_id_regexps']}
+    new_rule = {"Filters": filters, "UpdatesToFilteredFindings": updates}
+
+    if "resource_id_regexps" in match_on:
+        new_rule["ExtraFeatures"] = {
+            "RegexStringFilters": {"ResourceId": match_on["resource_id_regexps"]}
         }
 
     return new_rule
 
 
-rules = {'Rules': [convert(rule) for rule in old_rules]}
+input_path = Path(sys.argv[1] if len(sys.argv) > 1 else "rules.yaml")
+with input_path.open() as file:
+    old_document = yaml.safe_load(file)
 
-print(yaml.dump(rules, sort_keys=False, indent=2))
+if "Rules" not in old_document:
+    sys.exit(f"{input_path} has no top-level 'Rules' key. Is it a 1.x rules file?")
+
+document = {
+    "ManagerConfig": {
+        "DefaultRuleInput": {
+            "Filters": {
+                "WorkflowStatus": equals(["NEW", "NOTIFIED"]),
+            },
+            "UpdatesToFilteredFindings": {
+                "Workflow": {"Status": "SUPPRESSED"},
+                "Note": {"UpdatedBy": "awsfindingsmanagerlib"},
+            },
+            "ExtraFeatures": {
+                "NoteTextConfig": {"Mode": "jsonUpdate", "Key": "Note"},
+            },
+        },
+    },
+    "Rules": [convert(rule) for rule in old_document["Rules"]],
+}
+
+# Validate against botocore's service model. This makes no AWS calls and needs no
+# credentials; the region is only required to create the client.
+client = boto3.client("securityhub", region_name="us-east-1")
+Manager.from_rules_document(document, client)
+
+print(yaml.safe_dump(document, sort_keys=False, indent=2))
+print(
+    f"Converted {len(document['Rules'])} rules; the result is a valid 2.x rules document.",
+    file=sys.stderr,
+)
 ```
 
 See the updated `examples/rules.yaml` in this repository for a complete, translated file (all four
