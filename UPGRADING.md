@@ -55,7 +55,7 @@ ManagerConfig:
       Workflow:
         Status: SUPPRESSED
       Note:
-        UpdatedBy: awsfindingsmanagerlib
+        UpdatedBy: FindingsManager
     ExtraFeatures:
       NoteTextConfig:
         Mode: jsonUpdate
@@ -169,7 +169,7 @@ document = {
             },
             "UpdatesToFilteredFindings": {
                 "Workflow": {"Status": "SUPPRESSED"},
-                "Note": {"UpdatedBy": "awsfindingsmanagerlib"},
+                "Note": {"UpdatedBy": "FindingsManager"},
             },
             "ExtraFeatures": {
                 "NoteTextConfig": {"Mode": "jsonUpdate", "Key": "Note"},
