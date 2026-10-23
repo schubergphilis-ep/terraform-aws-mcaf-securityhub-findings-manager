@@ -1,1 +1,7 @@
-awsfindingsmanagerlib==1.5.0
+# Intentionally not using the 'lambda' extra (awsfindingsmanagerlib[lambda]): it also pulls in
+# aws-lambda-powertools, which this module already provides to every Lambda (including this one)
+# via the shared powertools_layer_arn Lambda layer. Bundling it again here would duplicate it
+# inside the deployment package. pyyaml is pinned directly instead, since (unlike powertools)
+# nothing else provides it.
+awsfindingsmanagerlib==2.0.0
+pyyaml>=6.0.3

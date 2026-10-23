@@ -236,13 +236,15 @@ variable "kms_key_configuration" {
 }
 
 # Modify the build-lambda.yaml GitHub action if you modify the allowed versions to ensure a proper zip is created.
+# python3.11 is no longer supported: awsfindingsmanagerlib v2 (used by the findings-manager Lambdas) requires
+# Python >= 3.12. This variable is shared with the Jira Lambda, so it is restricted here too.
 variable "lambda_runtime" {
   type        = string
   default     = "python3.12"
   description = "The version of Python to use for the Lambda functions"
   validation {
-    condition     = contains(["python3.11", "python3.12"], var.lambda_runtime)
-    error_message = "The runtime must be one of the following: python3.11, python3.12."
+    condition     = contains(["python3.12"], var.lambda_runtime)
+    error_message = "The runtime must be one of the following: python3.12."
   }
 }
 
