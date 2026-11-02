@@ -121,6 +121,11 @@ run "jira_disabled" {
     condition     = length(module.jira_lambda) == 0
     error_message = "Jira lambda should not be created when disabled"
   }
+
+  assert {
+    condition     = length(local.findings_manager_note_text_config_env) == 0
+    error_message = "The note format should not be forced when the Jira integration is disabled"
+  }
 }
 
 run "jira_enabled" {
@@ -145,6 +150,14 @@ run "jira_enabled" {
         description = "Allow all outbound traffic"
       }]
     }
+  }
+
+  assert {
+    condition = (
+      local.findings_manager_note_text_config_env.NOTE_TEXT_CONFIG_MODE == "jsonUpdate" &&
+      local.findings_manager_note_text_config_env.NOTE_TEXT_CONFIG_KEY == "Note"
+    )
+    error_message = "The findings manager Lambdas should be forced to merge suppression notes into the JSON note when the Jira integration is enabled"
   }
 
   assert {
