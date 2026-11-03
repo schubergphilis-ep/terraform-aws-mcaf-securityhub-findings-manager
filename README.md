@@ -13,7 +13,8 @@ The Security Hub Findings Manager is a framework designed to automatically manag
 > Deploy this module in the Audit/Security Account of an AWS reference multi-account setup. This setup receives events from all child accounts, providing a comprehensive overview of the organization's security posture.
 
 > [!IMPORTANT]
-> This module relies heavily on [awsfindingsmanagerlib](https://github.com/schubergphilis/awsfindingsmanagerlib/tree/main). For detailed suppression logic information, refer to the library's [documentation](https://awsfindingsmanagerlib.readthedocs.io/en/latest/).
+> This module relies heavily on [awsfindingsmanagerlib](https://github.com/schubergphilis-ep/awsfindingsmanagerlib). For detailed suppression logic information, refer to the library's [documentation](https://schubergphilis-ep.github.io/awsfindingsmanagerlib/).
+> If you are upgrading from a version of this module that used awsfindingsmanagerlib 1.x, see [UPGRADING.md](UPGRADING.md) for the `rules.yaml` schema migration.
 
 ## Components
 
@@ -30,7 +31,7 @@ Here's a high-level overview of the components. For more details, see [Resources
 
 ## Formatting the `rules.yaml` File
 
-An example file is available under `examples/rules.yaml`. For detailed information, see the Rule Syntax section in the [awsfindingsmanagerlib documentation](https://awsfindingsmanagerlib.readthedocs.io/en/latest/#rule-syntax).
+An example file is available under `examples/rules.yaml`. For detailed information, see the awsfindingsmanagerlib [documentation](https://schubergphilis-ep.github.io/awsfindingsmanagerlib/), particularly its rule syntax and `Manager`/`ManagerConfig` sections.
 
 ## Deployment Modes
 
@@ -97,7 +98,7 @@ A lambda layer provides aws-lambda-powertools. To have these dependencies locall
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7.0 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.12.0 |
 | <a name="requirement_archive"></a> [archive](#requirement\_archive) | >= 2.0 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.0 |
 | <a name="requirement_external"></a> [external](#requirement\_external) | >= 2.0 |
@@ -148,12 +149,12 @@ A lambda layer provides aws-lambda-powertools. To have these dependencies locall
 | [aws_sfn_state_machine.jira_orchestrator](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sfn_state_machine) | resource |
 | [aws_sqs_queue.dlq_for_findings_manager_rule_q](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sqs_queue) | resource |
 | [aws_sqs_queue.findings_manager_rule_q](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sqs_queue) | resource |
-| [aws_sqs_queue_policy.findings_manager_rule_sqs_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sqs_queue_policy) | resource |
 | [aws_sqs_queue_redrive_allow_policy.dead_letter_allow_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sqs_queue_redrive_allow_policy) | resource |
 | [aws_sqs_queue_redrive_policy.redrive_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sqs_queue_redrive_policy) | resource |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
-| [aws_iam_policy_document.findings_manager_lambda_iam_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
-| [aws_iam_policy_document.findings_manager_rule_sqs_policy_doc](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.findings_manager_events_lambda_iam_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.findings_manager_trigger_lambda_iam_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.findings_manager_worker_lambda_iam_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.jira_eventbridge_iam_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.jira_lambda_iam_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.jira_step_function_iam_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
