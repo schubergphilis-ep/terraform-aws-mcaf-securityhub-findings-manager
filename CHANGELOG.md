@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ⚠ BREAKING CHANGES
 
-* the events, trigger and worker Lambdas now run on sechubman instead of awsfindingsmanagerlib. sechubman ships its own Lambda handlers, so the three handler shim files under files/lambda-artifacts/securityhub-findings-manager/ (and the strategize_findings_manager.py module they delegated into) are deleted entirely; Terraform's `handler` now points directly at sechubman's dotted module paths:
+* Upgrade awsfindingsmanagerlib to v2.0.0, see [UPGRADING.md](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/blob/main/UPGRADING.md).
 
 ### 🚀 Features
 
