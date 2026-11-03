@@ -154,13 +154,13 @@ module "findings_manager_events_lambda" {
   # it is explicitly marked as nonsensitive to provide visibility in terraform plans.
   layers = [nonsensitive(local.powertools_layer_arn)]
 
-  environment = {
+  environment = merge({
     S3_BUCKET_NAME              = module.findings_manager_bucket.name
     S3_OBJECT_NAME              = var.rules_s3_object_name
     LOG_LEVEL                   = var.findings_manager_events_lambda.log_level
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
     POWERTOOLS_SERVICE_NAME     = "securityhub-findings-manager-events"
-  }
+  }, local.findings_manager_note_text_config_env)
 
   execution_role = {
     create_policy = true
@@ -451,11 +451,11 @@ module "findings_manager_worker_lambda" {
   # it is explicitly marked as nonsensitive to provide visibility in terraform plans.
   layers = [nonsensitive(local.powertools_layer_arn)]
 
-  environment = {
+  environment = merge({
     LOG_LEVEL                   = var.findings_manager_worker_lambda.log_level
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
     POWERTOOLS_SERVICE_NAME     = "securityhub-findings-manager-worker"
-  }
+  }, local.findings_manager_note_text_config_env)
 
   execution_role = {
     create_policy = true

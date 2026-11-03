@@ -8,6 +8,15 @@ locals {
   # Check if Jira autoclose is enabled (requires the Jira integration itself to be enabled).
   jira_autoclose_enabled = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false)
 
+  # The Jira Lambda stores the issue key (jiraIssue/jiraInstance) in the finding's note as JSON, and
+  # autoclose reads it back. With the Jira integration enabled, force the findings manager to merge
+  # every suppression note into that JSON (under the key "Note") instead of overwriting it, whatever
+  # note format the rules document sets.
+  findings_manager_note_text_config_env = local.jira_integration_enabled ? {
+    NOTE_TEXT_CONFIG_MODE = "jsonUpdate"
+    NOTE_TEXT_CONFIG_KEY  = "Note"
+  } : {}
+
   # Collect all SecretsManager ARNs from all enabled instances
   jira_secretsmanager_arns = var.jira_integration != null ? [
     for instance_key, instance in var.jira_integration.instances : instance.credentials_secretsmanager_arn

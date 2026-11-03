@@ -62,6 +62,12 @@ ManagerConfig:
         Key: Note
 ```
 
+When the Jira integration is enabled, the module enforces the JSON note merging itself: it sets
+`NOTE_TEXT_CONFIG_MODE=jsonUpdate` and `NOTE_TEXT_CONFIG_KEY=Note` on the events and worker Lambdas,
+which makes awsfindingsmanagerlib apply that note format to every rule, whatever `NoteTextConfig` the
+rules document sets. Rules that set a different note format are overridden, with a warning in the
+Lambda logs.
+
 The script below converts a 1.x `rules.yaml` to a complete 2.x document, including the `ManagerConfig` block above
 (that's also where `Note.UpdatedBy` comes from - Security Hub's API rejects a `Note` without one).
 It declares its own dependencies ([PEP 723](https://peps.python.org/pep-0723/)), so with
