@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [8.0.0](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/compare/v7.6.0...v8.0.0) (2026-11-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* Upgrade awsfindingsmanagerlib to v2.x, see [UPGRADING.md](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/blob/main/UPGRADING.md).
+
+### 🚀 Features
+
+* upgrade awsfindingsmanagerlib to v2.x ([#20](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/issues/20)) ([859435d](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/commit/859435dd957a2744645dda1dd154c3af461c11ce))
+
 ## [7.6.0](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/compare/v7.5.0...v7.6.0) (2026-09-10)
 
 
