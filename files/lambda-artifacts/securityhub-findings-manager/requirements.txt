@@ -3,5 +3,5 @@
 # via the shared powertools_layer_arn Lambda layer. Bundling it again here would duplicate it
 # inside the deployment package. pyyaml is pinned directly instead, since (unlike powertools)
 # nothing else provides it.
-awsfindingsmanagerlib==2.0.0
+awsfindingsmanagerlib==2.1.0
 pyyaml>=6.0.3
