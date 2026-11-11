@@ -285,6 +285,23 @@ variable "subnet_ids" {
   description = "The subnet ids where the Lambda functions needs to run"
 }
 
+variable "s3_access_logging" {
+  type = object({
+    enabled                  = optional(bool, true)
+    expiration_days          = optional(number, 720)
+    transition_days          = optional(number, 90)
+    transition_storage_class = optional(string, "GLACIER_IR")
+  })
+  default     = {}
+  nullable    = false
+  description = "S3 server access logging configuration for the findings manager bucket. 'expiration_days' and 'transition_days' set the retention of the access logs."
+
+  validation {
+    condition     = var.s3_access_logging.expiration_days > var.s3_access_logging.transition_days
+    error_message = "'s3_access_logging.expiration_days' must be greater than 's3_access_logging.transition_days'."
+  }
+}
+
 variable "s3_bucket_name" {
   type        = string
   default     = null

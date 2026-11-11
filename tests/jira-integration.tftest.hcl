@@ -55,6 +55,14 @@ override_module {
 }
 
 override_module {
+  target = module.access_logs
+  outputs = {
+    name = "securityhub-findings-manager-artifacts-access-logs"
+    arn  = "arn:aws:s3:::securityhub-findings-manager-artifacts-access-logs"
+  }
+}
+
+override_module {
   target = module.findings_manager_events_lambda
   outputs = {
     name = "securityhub-findings-manager-events"

@@ -21,6 +21,7 @@ The Security Hub Findings Manager is a framework designed to automatically manag
 Here's a high-level overview of the components. For more details, see [Resources](#resources) and [Modules](#modules).
 
 * Rules backend (currently only S3 supported).
+* An S3 bucket for the server access logs of the rules backend bucket (can be disabled, see [S3 Access Logging](#s3-access-logging)).
 * Three Lambda Functions:
   * Security Hub Findings Manager Events: triggered by EventBridge for new Security Hub findings.
   * Security Hub Findings Manager Triggers: responds to changes in the S3 backend rules list, putting suppression rules on SQS.
@@ -89,6 +90,26 @@ Deploys two Lambda functions:
 > [!WARNING]
 > Generate the `access_key` & `secret_access_key` in the AWS Console. If you prefer Terraform to handle this (and output them), set the variable `create_servicenow_access_keys` to `true` (default = false).
 
+## S3 Access Logging
+
+S3 server access logging is enabled on the findings manager bucket, which stores the Lambda artifacts and the rules list. The logs are written to a dedicated access logs bucket:
+
+* The access logs bucket is named `<s3_bucket_name>-access-logs`, or gets the `findings-manager-access-logs-` prefix when `var.s3_bucket_name` is not set. As S3 bucket names are limited to 63 characters, a `var.s3_bucket_name` longer than 51 characters is truncated to its first 51 characters (dropping any trailing `-` or `.`) in the access logs bucket name. As bucket names are globally unique, two deployments whose `var.s3_bucket_name` share the same first 51 characters will clash on the access logs bucket name.
+* Logs are written under the `logs/` prefix, partitioned by the time of the request (`logs/<account-id>/<region>/<bucket>/YYYY/MM/DD/...`).
+* The access logs bucket is encrypted with S3 managed keys (SSE-S3) instead of the KMS key, as [S3 server access logging](https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-server-access-logging.html) does not support SSE-KMS on destination buckets.
+* Access logs are moved to `GLACIER_IR` after 90 days and expire after 720 days. Noncurrent versions are deleted after 7 days.
+
+The retention can be changed, or access logging disabled, with `var.s3_access_logging` (defaults shown):
+
+```hcl
+s3_access_logging = {
+  enabled                  = true
+  expiration_days          = 720
+  transition_days          = 90
+  transition_storage_class = "GLACIER_IR"
+}
+```
+
 ## Local Development on Python Code
 
 A lambda layer provides aws-lambda-powertools. To have these dependencies locally, use `requirements-dev.txt` from the source code.
@@ -115,7 +136,8 @@ A lambda layer provides aws-lambda-powertools. To have these dependencies locall
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_findings_manager_bucket"></a> [findings\_manager\_bucket](#module\_findings\_manager\_bucket) | schubergphilis-ep/mcaf-s3/aws | ~> 3.0.0 |
+| <a name="module_access_logs"></a> [access\_logs](#module\_access\_logs) | schubergphilis-ep/mcaf-s3/aws | ~> 4.0.0 |
+| <a name="module_findings_manager_bucket"></a> [findings\_manager\_bucket](#module\_findings\_manager\_bucket) | schubergphilis-ep/mcaf-s3/aws | ~> 4.0.0 |
 | <a name="module_findings_manager_events_lambda"></a> [findings\_manager\_events\_lambda](#module\_findings\_manager\_events\_lambda) | schubergphilis-ep/mcaf-lambda/aws | ~> 3.0.0 |
 | <a name="module_findings_manager_trigger_lambda"></a> [findings\_manager\_trigger\_lambda](#module\_findings\_manager\_trigger\_lambda) | schubergphilis-ep/mcaf-lambda/aws | ~> 3.0.0 |
 | <a name="module_findings_manager_worker_lambda"></a> [findings\_manager\_worker\_lambda](#module\_findings\_manager\_worker\_lambda) | schubergphilis-ep/mcaf-lambda/aws | ~> 3.0.0 |
@@ -179,6 +201,7 @@ A lambda layer provides aws-lambda-powertools. To have these dependencies locall
 | <a name="input_region"></a> [region](#input\_region) | The AWS region where the resources will be created. If omitted, the default provider region is used. | `string` | `null` | no |
 | <a name="input_rules_filepath"></a> [rules\_filepath](#input\_rules\_filepath) | Pathname to the file that stores the manager rules | `string` | `""` | no |
 | <a name="input_rules_s3_object_name"></a> [rules\_s3\_object\_name](#input\_rules\_s3\_object\_name) | The S3 object containing the rules to be applied to Security Hub findings manager | `string` | `"rules.yaml"` | no |
+| <a name="input_s3_access_logging"></a> [s3\_access\_logging](#input\_s3\_access\_logging) | S3 server access logging configuration for the findings manager bucket. 'expiration\_days' and 'transition\_days' set the retention of the access logs. | <pre>object({<br/>    enabled                  = optional(bool, true)<br/>    expiration_days          = optional(number, 720)<br/>    transition_days          = optional(number, 90)<br/>    transition_storage_class = optional(string, "GLACIER_IR")<br/>  })</pre> | `{}` | no |
 | <a name="input_s3_bucket_name"></a> [s3\_bucket\_name](#input\_s3\_bucket\_name) | The name for the S3 bucket which will be created for storing the function's deployment package | `string` | `null` | no |
 | <a name="input_servicenow_integration"></a> [servicenow\_integration](#input\_servicenow\_integration) | ServiceNow integration settings | <pre>object({<br/>    enabled                   = optional(bool, false)<br/>    create_access_keys        = optional(bool, false)<br/>    cloudwatch_retention_days = optional(number, 365)<br/>    severity_label_filter     = optional(list(string), [])<br/>  })</pre> | <pre>{<br/>  "enabled": false<br/>}</pre> | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | The subnet ids where the Lambda functions needs to run | `list(string)` | `null` | no |
