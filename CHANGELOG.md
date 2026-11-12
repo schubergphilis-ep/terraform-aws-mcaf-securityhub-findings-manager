@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [8.1.0](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/compare/v8.0.0...v8.1.0) (2026-11-12)
+
+
+### 🚀 Features
+
+* create s3 access logging bucket ([#23](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/issues/23)) ([86d528f](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/commit/86d528f0ac5d9c7824fc6b2666f8d099e9fdd572))
+
 ## [8.0.0](https://github.com/schubergphilis-ep/terraform-aws-mcaf-securityhub-findings-manager/compare/v7.6.0...v8.0.0) (2026-11-03)
 
 
