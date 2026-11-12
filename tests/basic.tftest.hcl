@@ -49,6 +49,14 @@ override_module {
 }
 
 override_module {
+  target = module.access_logs
+  outputs = {
+    name = "securityhub-findings-manager-artifacts-access-logs"
+    arn  = "arn:aws:s3:::securityhub-findings-manager-artifacts-access-logs"
+  }
+}
+
+override_module {
   target = module.findings_manager_events_lambda
   outputs = {
     name = "securityhub-findings-manager-events"
@@ -101,4 +109,75 @@ run "core_resources_created" {
     condition     = aws_sqs_queue.dlq_for_findings_manager_rule_q.name != ""
     error_message = "DLQ should be created"
   }
+
+  assert {
+    condition     = length(module.access_logs) == 1
+    error_message = "Expected the access logs bucket to be created when s3_access_logging is enabled (default)."
+  }
+
+  assert {
+    condition     = local.access_logs_bucket_name == "securityhub-findings-manager-test-access-logs"
+    error_message = "Expected the access logs bucket to be named '<s3_bucket_name>-access-logs'."
+  }
+}
+
+run "access_logging_long_bucket_name" {
+  command = plan
+
+  variables {
+    kms_key_arn    = "arn:aws:kms:eu-west-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"
+    s3_bucket_name = "mns-core-audit-securityhub-findings-manager-artifacts"
+    rules_filepath = "examples/rules.yaml"
+  }
+
+  assert {
+    condition     = local.access_logs_bucket_name == "mns-core-audit-securityhub-findings-manager-artifac-access-logs"
+    error_message = "Expected s3_bucket_name to be truncated so the access logs bucket name fits the 63 character limit."
+  }
+}
+
+run "access_logging_long_bucket_name_trailing_hyphen" {
+  command = plan
+
+  variables {
+    kms_key_arn    = "arn:aws:kms:eu-west-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"
+    s3_bucket_name = "mns-core-audit-securityhub-findings-manager-bucket-prod"
+    rules_filepath = "examples/rules.yaml"
+  }
+
+  assert {
+    condition     = local.access_logs_bucket_name == "mns-core-audit-securityhub-findings-manager-bucket-access-logs"
+    error_message = "Expected the trailing '-' left by truncating s3_bucket_name to be trimmed."
+  }
+}
+
+run "access_logging_disabled" {
+  command = plan
+
+  variables {
+    kms_key_arn       = "arn:aws:kms:eu-west-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"
+    s3_access_logging = { enabled = false }
+    s3_bucket_name    = "securityhub-findings-manager-test"
+    rules_filepath    = "examples/rules.yaml"
+  }
+
+  assert {
+    condition     = length(module.access_logs) == 0
+    error_message = "Expected no access logs bucket to be created when s3_access_logging is disabled."
+  }
+}
+
+run "access_logging_invalid_retention" {
+  command = plan
+
+  variables {
+    kms_key_arn       = "arn:aws:kms:eu-west-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"
+    s3_access_logging = { expiration_days = 30 }
+    s3_bucket_name    = "securityhub-findings-manager-test"
+    rules_filepath    = "examples/rules.yaml"
+  }
+
+  expect_failures = [
+    var.s3_access_logging,
+  ]
 }
